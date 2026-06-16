@@ -203,12 +203,15 @@
     const messageText = payload.message || "";
     const subjectText = payload.subject || "";
 
+    showReviewBanner();
     clickStartApplicationButton();
-    setTimeout(() => fillApplicationFields(messageText, subjectText), 800);
+    [700, 1600, 3000].forEach((delay) => {
+      setTimeout(() => fillApplicationFields(messageText, subjectText), delay);
+    });
   }
 
   function fillApplicationFields(messageText, subjectText) {
-    const writableFields = [...document.querySelectorAll("textarea, [contenteditable='true'], input[type='text'], input:not([type])")]
+    const writableFields = [...document.querySelectorAll("textarea, [contenteditable='true'], input[type='text'], input[type='email'], input[type='tel'], input:not([type])")]
       .filter((field) => isVisible(field) && !field.disabled && !field.readOnly);
 
     writableFields.forEach((field) => {
@@ -219,6 +222,10 @@
         setFieldValue(field, subjectText);
       } else if (/nombre|name/i.test(label)) {
         setFieldValue(field, "Augusto Stephani");
+      } else if (/email|correo|mail/i.test(label)) {
+        highlightField(field, "Completar email");
+      } else if (/telefono|tel[eé]fono|phone|celular|mobile/i.test(label)) {
+        highlightField(field, "Completar telefono");
       } else if (/ubicaci[oó]n|location|pais|country/i.test(label)) {
         setFieldValue(field, "Argentina");
       } else if (/experiencia|experience/i.test(label)) {
@@ -227,11 +234,15 @@
         setFieldValue(field, "Python, Flask, SQLite, HTML, CSS, JavaScript, APIs REST, Postman, Git, GitHub, requests, BeautifulSoup, pandas, CSV, JSON y proyectos CRUD.");
       } else if (/ingles|english/i.test(label)) {
         setFieldValue(field, "Intermedio");
+      } else if (/pretensi[oó]n|salario|sueldo|remuneraci[oó]n/i.test(label)) {
+        highlightField(field, "Revisar pretension salarial");
       }
     });
 
+    fillSelects();
+
     document.querySelectorAll("input[type='file']").forEach((input) => {
-      if (isVisible(input)) input.style.outline = "3px solid #1769aa";
+      if (isVisible(input)) highlightField(input, "Adjuntar CV manualmente");
     });
 
     [...document.querySelectorAll("button, input[type='submit'], a")]
@@ -240,6 +251,33 @@
         element.style.outline = "3px solid #1769aa";
         element.title = "Revisar antes de enviar";
       });
+  }
+
+  function fillSelects() {
+    [...document.querySelectorAll("select")]
+      .filter((select) => isVisible(select) && !select.disabled)
+      .forEach((select) => {
+        const label = getFieldLabel(select).toLowerCase();
+        const options = [...select.options];
+        const pick = findOption(options, label);
+        if (!pick) return;
+        select.value = pick.value;
+        select.dispatchEvent(new Event("input", { bubbles: true }));
+        select.dispatchEvent(new Event("change", { bubbles: true }));
+        highlightField(select, "Seleccion revisada automaticamente");
+      });
+  }
+
+  function findOption(options, label) {
+    if (/pais|country|ubicaci[oó]n|location/i.test(label)) return optionMatching(options, /argentina/i);
+    if (/ingles|english/i.test(label)) return optionMatching(options, /intermedio|intermediate|b1|b2/i);
+    if (/experiencia|experience/i.test(label)) return optionMatching(options, /sin|0|menos|junior|trainee|entry/i);
+    if (/remoto|modalidad|modal/i.test(label)) return optionMatching(options, /remoto|remote|hibrido|hybrid/i);
+    return null;
+  }
+
+  function optionMatching(options, pattern) {
+    return options.find((option) => pattern.test(cleanText(option.textContent || option.label || option.value)));
   }
 
   function clickStartApplicationButton() {
@@ -255,6 +293,27 @@
     if (!first) return;
     first.style.outline = "3px solid #1769aa";
     first.click();
+  }
+
+  function showReviewBanner() {
+    document.querySelector("#job-assistant-review-banner")?.remove();
+    const banner = document.createElement("div");
+    banner.id = "job-assistant-review-banner";
+    banner.textContent = "Job Assistant preparo la postulacion. Revisa campos resaltados, adjunta CV si corresponde y confirma el envio.";
+    banner.style.cssText = [
+      "position:fixed",
+      "z-index:2147483647",
+      "left:16px",
+      "right:16px",
+      "bottom:16px",
+      "padding:12px 14px",
+      "background:#1769aa",
+      "color:white",
+      "font:14px Arial, sans-serif",
+      "border-radius:8px",
+      "box-shadow:0 8px 24px rgba(0,0,0,.22)"
+    ].join(";");
+    document.documentElement.appendChild(banner);
   }
 
   function getFieldLabel(field) {
@@ -274,6 +333,11 @@
     }
     field.dispatchEvent(new Event("input", { bubbles: true }));
     field.dispatchEvent(new Event("change", { bubbles: true }));
+    highlightField(field, "Autocompletado por Job Assistant");
+  }
+
+  function highlightField(field, title) {
     field.style.outline = "3px solid #1769aa";
+    field.title = title;
   }
 })();
