@@ -11,7 +11,20 @@
 
   function absoluteUrl(value) {
     try {
-      const url = new URL(value, window.location.href);
+      let url = new URL(value, window.location.href);
+      const redirect = url.searchParams.get("destRedirectURL") || url.searchParams.get("redirect") || url.searchParams.get("url");
+      if (/linkedin\.com\/premium\/survey/i.test(url.href) && redirect) {
+        url = new URL(decodeURIComponent(redirect));
+      }
+
+      const currentJobId = url.searchParams.get("currentJobId");
+      if (/linkedin\.com$/i.test(url.hostname.replace(/^www\./, "")) && currentJobId) {
+        return `https://www.linkedin.com/jobs/view/${currentJobId}/`;
+      }
+
+      const linkedInMatch = url.href.match(/linkedin\.com\/jobs\/view\/(\d+)/i);
+      if (linkedInMatch) return `https://www.linkedin.com/jobs/view/${linkedInMatch[1]}/`;
+
       ["trk", "refId", "trackingId", "lipi", "position", "pageNum"].forEach((key) => url.searchParams.delete(key));
       return url.href;
     } catch (error) {
@@ -20,7 +33,12 @@
   }
 
   function isBlockedLink(href) {
+    if (isLinkedInPremiumRedirect(href)) return false;
     return /(premium|products|sales|learning|feed|messaging|notifications|company|school|salary|salaries|login|signin|signup|help|privacy|legal|talent|recruiter|ads|campaign|uas\/login|checkpoint)/i.test(href);
+  }
+
+  function isLinkedInPremiumRedirect(href) {
+    return /linkedin\.com\/premium\/survey/i.test(href) && /destRedirectURL/i.test(href);
   }
 
   function isStrongJobUrl(href) {
@@ -68,7 +86,7 @@
     const haystack = `${href} ${text}`.toLowerCase();
     if (isBlockedLink(href)) return false;
     const hrefLooksValid = isStrongJobUrl(href) || /(job|jobs|empleo|empleos|trabajo|trabajos|oferta|ofertas|vacante|puesto|developer|programador|desarrollador|backend|frontend|python|trainee|junior|jr)/i.test(haystack);
-    const notNavigation = !/(login|signin|registro|empresa|salario|blog|contacto|politica|privacy|ayuda|help|premium)/i.test(haystack);
+    const notNavigation = isLinkedInPremiumRedirect(href) || !/(login|signin|registro|empresa|salario|blog|contacto|politica|privacy|ayuda|help|premium)/i.test(haystack);
     return text.length >= 5 && hrefLooksValid && notNavigation;
   }
 
@@ -230,14 +248,22 @@
     });
   });
 
+  [1500, 4000].forEach((delay) => {
+    setTimeout(() => detectAlreadyApplied(window.location.href), delay);
+  });
+
   function prepareApplicationFields(payload) {
     const messageText = payload.message || "";
     const subjectText = payload.subject || "";
 
     showReviewBanner();
+    detectAlreadyApplied(payload.url || window.location.href);
     clickStartApplicationButton();
     [700, 1600, 3000].forEach((delay) => {
-      setTimeout(() => fillApplicationFields(messageText, subjectText), delay);
+      setTimeout(() => {
+        fillApplicationFields(messageText, subjectText);
+        detectAlreadyApplied(payload.url || window.location.href);
+      }, delay);
     });
     watchFinalSubmit(payload.url || window.location.href);
   }
@@ -340,6 +366,12 @@
     };
 
     document.addEventListener("click", handler, true);
+  }
+
+  function detectAlreadyApplied(jobUrl) {
+    const text = cleanText(document.body?.innerText || "").toLowerCase();
+    if (!/(ya te postulaste|ya has postulado|ya te has postulado|postulaci[oó]n enviada|postulacion enviada|solicitud enviada|application submitted|already applied|you applied)/i.test(text)) return;
+    chrome.runtime.sendMessage({ type: "APPLICATION_SUBMITTED", url: jobUrl });
   }
 
   function showReviewBanner() {

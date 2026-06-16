@@ -1,4 +1,4 @@
-import { deleteJob, getCv, getJobs, JOB_STATUSES, updateJobStatus } from "./utils/storage.js";
+import { deleteJob, getCv, getJobs, normalizeJobUrl, updateJobStatus } from "./utils/storage.js";
 
 const body = document.querySelector("#jobsBody");
 const count = document.querySelector("#count");
@@ -99,7 +99,7 @@ function renderCard(job) {
       <header class="job-card-header">
         <div>
           <h2>${escapeHtml(job.title || "No detectado")}</h2>
-          <p>${escapeHtml(job.company || "Empresa no detectada")} · ${escapeHtml(job.source || "Pagina no detectada")}</p>
+          <p>${escapeHtml(job.company || "Empresa no detectada")} - ${escapeHtml(job.source || "Pagina no detectada")}</p>
         </div>
         <div class="score-pill">${Number(job.score || 0)}</div>
       </header>
@@ -113,14 +113,14 @@ function renderCard(job) {
         <div><dt>Guardada</dt><dd>${formatDate(job.savedAt)}</dd></div>
       </dl>
 
-      ${lowReasons.length ? `<p class="low-reasons">${escapeHtml(lowReasons.join(" · "))}</p>` : ""}
+      ${lowReasons.length ? `<p class="low-reasons">${escapeHtml(lowReasons.join(" - "))}</p>` : ""}
 
       <div class="job-actions">
-        <button class="primary" data-apply-url="${escapeHtml(job.url)}">Postular</button>
-        <button data-copy-url="${escapeHtml(job.url)}">Copiar</button>
-        <a class="button-link" href="${escapeHtml(job.url)}" target="_blank" rel="noreferrer">Abrir</a>
-        ${job.status === "postulada" ? "" : `<button data-status-url="${escapeHtml(job.url)}" data-status-value="postulada">Marcar postulada</button>`}
-        <button class="delete" data-delete-url="${escapeHtml(job.url)}">Eliminar</button>
+        <button class="primary" data-apply-url="${escapeHtml(normalizeJobUrl(job.url))}">Postular</button>
+        <button data-copy-url="${escapeHtml(normalizeJobUrl(job.url))}">Copiar</button>
+        <a class="button-link" href="${escapeHtml(normalizeJobUrl(job.url))}" target="_blank" rel="noreferrer">Abrir</a>
+        ${job.status === "postulada" ? "" : `<button data-status-url="${escapeHtml(normalizeJobUrl(job.url))}" data-status-value="postulada">Marcar postulada</button>`}
+        <button class="delete" data-delete-url="${escapeHtml(normalizeJobUrl(job.url))}">Eliminar</button>
       </div>
     </article>
   `;
@@ -158,7 +158,9 @@ async function copyMessage(url) {
 
 function openApplyPanel(url) {
   selectedJob = jobs.find((item) => item.url === url);
+  if (!selectedJob) selectedJob = jobs.find((item) => normalizeJobUrl(item.url) === normalizeJobUrl(url));
   if (!selectedJob) return;
+  selectedJob = { ...selectedJob, url: normalizeJobUrl(selectedJob.url) };
 
   const email = selectedJob.generatedEmail || {};
   applyTitle.textContent = selectedJob.title || "Postular";
@@ -201,7 +203,7 @@ async function prepareCurrentApplication() {
 
 function openSelectedOffer() {
   if (!selectedJob?.url) return;
-  window.open(selectedJob.url, "_blank", "noreferrer");
+  window.open(normalizeJobUrl(selectedJob.url), "_blank", "noreferrer");
   applyStatus.textContent = "Oferta abierta. Adjunta el CV y pega el mensaje revisado.";
 }
 
@@ -209,7 +211,7 @@ async function markSelectedApplied(showMessage = true) {
   if (!selectedJob?.url) return;
   await updateJobStatus(selectedJob.url, "postulada");
   jobs = await getJobs();
-  selectedJob = jobs.find((item) => item.url === selectedJob.url);
+  selectedJob = jobs.find((item) => normalizeJobUrl(item.url) === normalizeJobUrl(selectedJob.url));
   render();
   if (showMessage) applyStatus.textContent = "Marcada como postulada.";
 }

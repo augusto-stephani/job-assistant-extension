@@ -63,15 +63,22 @@ export async function saveProfile(profile) {
 
 export async function getJobs() {
   const data = await chromeGet(["jobs"]);
-  return Array.isArray(data.jobs) ? data.jobs : [];
+  const jobs = Array.isArray(data.jobs) ? data.jobs : [];
+  const deduped = dedupeJobs(jobs);
+  if (deduped.length !== jobs.length || deduped.some((job, index) => job.url !== jobs[index]?.url)) {
+    await chromeSet({ jobs: deduped });
+  }
+  return deduped;
 }
 
 export async function saveJob(job) {
   const jobs = await getJobs();
-  const existingIndex = jobs.findIndex((item) => item.url === job.url);
+  const normalizedUrl = normalizeJobUrl(job.url);
+  const existingIndex = jobs.findIndex((item) => normalizeJobUrl(item.url) === normalizedUrl);
   const now = new Date().toISOString();
   const finalJob = {
     ...job,
+    url: normalizedUrl,
     status: job.status || "nueva",
     savedAt: job.savedAt || now,
     updatedAt: now
@@ -89,14 +96,16 @@ export async function saveJob(job) {
 
 export async function updateJobStatus(url, status) {
   const jobs = await getJobs();
-  const updated = jobs.map((job) => job.url === url ? { ...job, status, updatedAt: new Date().toISOString() } : job);
+  const normalizedUrl = normalizeJobUrl(url);
+  const updated = jobs.map((job) => normalizeJobUrl(job.url) === normalizedUrl ? { ...job, url: normalizeJobUrl(job.url), status, updatedAt: new Date().toISOString() } : job);
   await chromeSet({ jobs: updated });
   return updated;
 }
 
 export async function deleteJob(url) {
   const jobs = await getJobs();
-  await chromeSet({ jobs: jobs.filter((job) => job.url !== url) });
+  const normalizedUrl = normalizeJobUrl(url);
+  await chromeSet({ jobs: jobs.filter((job) => normalizeJobUrl(job.url) !== normalizedUrl) });
 }
 
 export function normalizeList(value) {
@@ -105,4 +114,56 @@ export function normalizeList(value) {
     .split(/\n|,/)
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+export function normalizeJobUrl(value) {
+  if (!value || value === "No detectado") return "No detectado";
+
+  try {
+    let url = new URL(value);
+    const redirect = url.searchParams.get("destRedirectURL") || url.searchParams.get("redirect") || url.searchParams.get("url");
+    if (/linkedin\.com\/premium\/survey/i.test(url.href) && redirect) {
+      url = new URL(decodeURIComponent(redirect));
+    }
+
+    const currentJobId = url.searchParams.get("currentJobId");
+    if (/linkedin\.com$/i.test(url.hostname.replace(/^www\./, "")) && currentJobId) {
+      return `https://www.linkedin.com/jobs/view/${currentJobId}/`;
+    }
+
+    const linkedInMatch = url.href.match(/linkedin\.com\/jobs\/view\/(\d+)/i);
+    if (linkedInMatch) return `https://www.linkedin.com/jobs/view/${linkedInMatch[1]}/`;
+
+    ["trk", "refId", "trackingId", "lipi", "position", "pageNum", "utm_source", "utm_medium", "utm_campaign"].forEach((key) => url.searchParams.delete(key));
+    url.hash = "";
+    return url.href.replace(/\/$/, "");
+  } catch (error) {
+    return String(value);
+  }
+}
+
+function dedupeJobs(jobs) {
+  const map = new Map();
+
+  jobs.forEach((job) => {
+    const normalized = { ...job, url: normalizeJobUrl(job.url) };
+    const fallbackKey = `${String(normalized.title || "").toLowerCase()}|${String(normalized.company || "").toLowerCase()}|${String(normalized.source || "").toLowerCase()}`;
+    const key = normalized.url && normalized.url !== "No detectado" ? normalized.url : fallbackKey;
+    const current = map.get(key);
+    if (!current) {
+      map.set(key, normalized);
+      return;
+    }
+
+    map.set(key, {
+      ...current,
+      ...normalized,
+      status: current.status === "postulada" || normalized.status === "postulada" ? "postulada" : (normalized.status || current.status),
+      savedAt: current.savedAt || normalized.savedAt,
+      updatedAt: normalized.updatedAt || current.updatedAt,
+      score: Math.max(Number(current.score || 0), Number(normalized.score || 0))
+    });
+  });
+
+  return [...map.values()];
 }

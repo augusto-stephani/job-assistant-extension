@@ -24,15 +24,38 @@ chrome.runtime.onInstalled.addListener(() => {
 
 const pendingApplications = new Map();
 
+function normalizeJobUrl(value) {
+  if (!value || value === "No detectado") return "No detectado";
+  try {
+    let url = new URL(value);
+    const redirect = url.searchParams.get("destRedirectURL") || url.searchParams.get("redirect") || url.searchParams.get("url");
+    if (/linkedin\.com\/premium\/survey/i.test(url.href) && redirect) {
+      url = new URL(decodeURIComponent(redirect));
+    }
+    const currentJobId = url.searchParams.get("currentJobId");
+    if (/linkedin\.com$/i.test(url.hostname.replace(/^www\./, "")) && currentJobId) {
+      return `https://www.linkedin.com/jobs/view/${currentJobId}/`;
+    }
+    const linkedInMatch = url.href.match(/linkedin\.com\/jobs\/view\/(\d+)/i);
+    if (linkedInMatch) return `https://www.linkedin.com/jobs/view/${linkedInMatch[1]}/`;
+    ["trk", "refId", "trackingId", "lipi", "position", "pageNum", "utm_source", "utm_medium", "utm_campaign"].forEach((key) => url.searchParams.delete(key));
+    url.hash = "";
+    return url.href.replace(/\/$/, "");
+  } catch (error) {
+    return String(value);
+  }
+}
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type === "OPEN_DASHBOARD") {
     chrome.tabs.create({ url: chrome.runtime.getURL("dashboard.html") });
   }
 
   if (message?.type === "OPEN_AND_PREPARE_APPLICATION") {
-    chrome.tabs.create({ url: message.url, active: true }, (tab) => {
+    const normalizedUrl = normalizeJobUrl(message.url);
+    chrome.tabs.create({ url: normalizedUrl, active: true }, (tab) => {
       pendingApplications.set(tab.id, {
-        url: message.url || "",
+        url: normalizedUrl,
         subject: message.subject || "",
         message: message.message || "",
         cvFileName: message.cvFileName || ""
@@ -45,7 +68,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type === "APPLICATION_SUBMITTED") {
     chrome.storage.local.get(["jobs"], (data) => {
       const jobs = Array.isArray(data.jobs) ? data.jobs : [];
-      const updated = jobs.map((job) => job.url === message.url ? { ...job, status: "postulada", updatedAt: new Date().toISOString() } : job);
+      const normalizedUrl = normalizeJobUrl(message.url);
+      const updated = jobs.map((job) => normalizeJobUrl(job.url) === normalizedUrl ? { ...job, url: normalizeJobUrl(job.url), status: "postulada", updatedAt: new Date().toISOString() } : job);
       chrome.storage.local.set({ jobs: updated }, () => sendResponse({ ok: true }));
     });
     return true;
