@@ -18,6 +18,8 @@ La extension funciona como asistente local: analiza ofertas visibles, prioriza o
 - Genera un email de presentacion personalizado.
 - Guarda ofertas en `chrome.storage.local`.
 - Evita duplicados por URL.
+- Registra fecha y hora de postulacion cuando detecta envio o cuando se marca manualmente.
+- Si la postulacion redirige a otro sitio, guarda tambien la URL donde se completo/detecto.
 - Permite marcar estado: nueva, interesante, descartada, postulada, entrevista o rechazada.
 - Incluye dashboard con filtros, orden por score/mejores opciones y acciones.
 - Permite preparar postulaciones: copia carta, abre la oferta, intenta iniciar el formulario e intenta autocompletar campos de texto visibles.

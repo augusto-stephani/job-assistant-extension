@@ -97,7 +97,14 @@ export async function saveJob(job) {
 export async function updateJobStatus(url, status) {
   const jobs = await getJobs();
   const normalizedUrl = normalizeJobUrl(url);
-  const updated = jobs.map((job) => normalizeJobUrl(job.url) === normalizedUrl ? { ...job, url: normalizeJobUrl(job.url), status, updatedAt: new Date().toISOString() } : job);
+  const now = new Date().toISOString();
+  const updated = jobs.map((job) => normalizeJobUrl(job.url) === normalizedUrl ? {
+    ...job,
+    url: normalizeJobUrl(job.url),
+    status,
+    appliedAt: status === "postulada" ? (job.appliedAt || now) : job.appliedAt,
+    updatedAt: now
+  } : job);
   await chromeSet({ jobs: updated });
   return updated;
 }
@@ -159,6 +166,8 @@ function dedupeJobs(jobs) {
       ...current,
       ...normalized,
       status: current.status === "postulada" || normalized.status === "postulada" ? "postulada" : (normalized.status || current.status),
+      appliedAt: current.appliedAt || normalized.appliedAt,
+      appliedUrl: current.appliedUrl || normalized.appliedUrl,
       savedAt: current.savedAt || normalized.savedAt,
       updatedAt: normalized.updatedAt || current.updatedAt,
       score: Math.max(Number(current.score || 0), Number(normalized.score || 0))

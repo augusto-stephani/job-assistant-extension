@@ -257,15 +257,15 @@
     const subjectText = payload.subject || "";
 
     showReviewBanner();
-    detectAlreadyApplied(payload.url || window.location.href);
+    detectAlreadyApplied(payload.originalUrl || payload.url || window.location.href);
     clickStartApplicationButton();
     [700, 1600, 3000].forEach((delay) => {
       setTimeout(() => {
         fillApplicationFields(messageText, subjectText);
-        detectAlreadyApplied(payload.url || window.location.href);
+        detectAlreadyApplied(payload.originalUrl || payload.url || window.location.href);
       }, delay);
     });
-    watchFinalSubmit(payload.url || window.location.href);
+    watchFinalSubmit(payload.originalUrl || payload.url || window.location.href);
   }
 
   function fillApplicationFields(messageText, subjectText) {
@@ -361,7 +361,7 @@
       const text = cleanText(target.textContent || target.value).toLowerCase();
       if (!/(enviar|submit|finalizar|confirmar|postular|solicitar|apply)/i.test(text)) return;
 
-      chrome.runtime.sendMessage({ type: "APPLICATION_SUBMITTED", url: jobUrl });
+      chrome.runtime.sendMessage({ type: "APPLICATION_SUBMITTED", url: jobUrl, originalUrl: jobUrl, currentUrl: window.location.href });
       document.removeEventListener("click", handler, true);
     };
 
@@ -371,7 +371,7 @@
   function detectAlreadyApplied(jobUrl) {
     const text = cleanText(document.body?.innerText || "").toLowerCase();
     if (!/(ya te postulaste|ya has postulado|ya te has postulado|postulaci[oó]n enviada|postulacion enviada|solicitud enviada|application submitted|already applied|you applied)/i.test(text)) return;
-    chrome.runtime.sendMessage({ type: "APPLICATION_SUBMITTED", url: jobUrl });
+    chrome.runtime.sendMessage({ type: "APPLICATION_SUBMITTED", url: jobUrl, originalUrl: jobUrl, currentUrl: window.location.href });
   }
 
   function showReviewBanner() {

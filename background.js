@@ -55,6 +55,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const normalizedUrl = normalizeJobUrl(message.url);
     chrome.tabs.create({ url: normalizedUrl, active: true }, (tab) => {
       pendingApplications.set(tab.id, {
+        originalUrl: normalizedUrl,
         url: normalizedUrl,
         subject: message.subject || "",
         message: message.message || "",
@@ -68,8 +69,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type === "APPLICATION_SUBMITTED") {
     chrome.storage.local.get(["jobs"], (data) => {
       const jobs = Array.isArray(data.jobs) ? data.jobs : [];
-      const normalizedUrl = normalizeJobUrl(message.url);
-      const updated = jobs.map((job) => normalizeJobUrl(job.url) === normalizedUrl ? { ...job, url: normalizeJobUrl(job.url), status: "postulada", updatedAt: new Date().toISOString() } : job);
+      const normalizedUrl = normalizeJobUrl(message.originalUrl || message.url);
+      const now = new Date().toISOString();
+      const updated = jobs.map((job) => normalizeJobUrl(job.url) === normalizedUrl ? {
+        ...job,
+        url: normalizeJobUrl(job.url),
+        status: "postulada",
+        appliedAt: job.appliedAt || now,
+        appliedUrl: message.currentUrl || message.url || normalizedUrl,
+        updatedAt: now
+      } : job);
       chrome.storage.local.set({ jobs: updated }, () => sendResponse({ ok: true }));
     });
     return true;
@@ -80,9 +89,9 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (changeInfo.status !== "complete" || !pendingApplications.has(tabId)) return;
 
   const payload = pendingApplications.get(tabId);
+  const nextPayload = { ...payload, currentUrl: changeInfo.url || payload.currentUrl };
+  pendingApplications.set(tabId, nextPayload);
   setTimeout(() => {
-    chrome.tabs.sendMessage(tabId, { type: "PREPARE_APPLICATION_FIELDS", payload }, () => {
-      pendingApplications.delete(tabId);
-    });
+    chrome.tabs.sendMessage(tabId, { type: "PREPARE_APPLICATION_FIELDS", payload: nextPayload });
   }, 1200);
 });

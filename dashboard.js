@@ -111,6 +111,7 @@ function renderCard(job) {
         <div><dt>Sueldo</dt><dd>${escapeHtml(job.salary || "No detectado")}</dd></div>
         <div><dt>Estado</dt><dd>${escapeHtml(job.status || "nueva")}</dd></div>
         <div><dt>Guardada</dt><dd>${formatDate(job.savedAt)}</dd></div>
+        ${job.status === "postulada" ? `<div><dt>Postulacion</dt><dd>${formatDate(job.appliedAt)}</dd></div>` : ""}
       </dl>
 
       ${lowReasons.length ? `<p class="low-reasons">${escapeHtml(lowReasons.join(" - "))}</p>` : ""}
@@ -119,6 +120,7 @@ function renderCard(job) {
         <button class="primary" data-apply-url="${escapeHtml(normalizeJobUrl(job.url))}">Postular</button>
         <button data-copy-url="${escapeHtml(normalizeJobUrl(job.url))}">Copiar</button>
         <a class="button-link" href="${escapeHtml(normalizeJobUrl(job.url))}" target="_blank" rel="noreferrer">Abrir</a>
+        ${job.appliedUrl ? `<a class="button-link" href="${escapeHtml(job.appliedUrl)}" target="_blank" rel="noreferrer">Sitio postulacion</a>` : ""}
         ${job.status === "postulada" ? "" : `<button data-status-url="${escapeHtml(normalizeJobUrl(job.url))}" data-status-value="postulada">Marcar postulada</button>`}
         <button class="delete" data-delete-url="${escapeHtml(normalizeJobUrl(job.url))}">Eliminar</button>
       </div>
