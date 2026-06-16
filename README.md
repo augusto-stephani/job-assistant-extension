@@ -27,6 +27,7 @@ La extension funciona como asistente local: analiza ofertas visibles, prioriza o
 - Permite marcar estado: nueva, interesante, descartada, postulada, entrevista o rechazada.
 - Incluye dashboard con filtros, orden por score/mejores opciones y acciones.
 - Permite preparar postulaciones: copia carta, abre la oferta, intenta iniciar el formulario e intenta autocompletar campos de texto visibles.
+- En paginas con formularios de postulacion muestra un boton flotante para autocompletar datos, carta y CV guardado.
 - Incluye pagina de opciones para editar el perfil.
 
 ## Como instalar en Chrome
@@ -49,6 +50,7 @@ La extension funciona como asistente local: analiza ofertas visibles, prioriza o
 7. Hacer click en `Guardar oferta`.
 8. Abrir `Dashboard` para ver el historial.
 9. Usar `Postular` para abrir la oferta, preparar campos de texto y marcarla como postulada.
+10. Si el portal muestra un formulario, usar `Autocompletar postulacion` para cargar tus datos rapido.
 
 ## Configuracion
 

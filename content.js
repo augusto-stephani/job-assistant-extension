@@ -252,6 +252,97 @@
     setTimeout(() => detectAlreadyApplied(window.location.href), delay);
   });
 
+  initFloatingAutofill();
+
+  function initFloatingAutofill() {
+    const tryRender = () => {
+      if (document.querySelector("#job-assistant-autofill")) return;
+      if (!hasApplicationForm()) return;
+      renderFloatingAutofill();
+    };
+
+    tryRender();
+    setInterval(tryRender, 2500);
+  }
+
+  function hasApplicationForm() {
+    const fields = document.querySelectorAll("input, textarea, select, [contenteditable='true']");
+    const text = cleanText(document.body?.innerText || "").toLowerCase();
+    return fields.length >= 3 && /(postular|solicitar|aplicar|apply|cv|curriculum|resume|cover|carta|perfil|telefono|email|correo)/i.test(text);
+  }
+
+  function renderFloatingAutofill() {
+    const box = document.createElement("div");
+    box.id = "job-assistant-autofill";
+    box.innerHTML = `
+      <button id="job-assistant-autofill-btn" type="button">Autocompletar postulacion</button>
+      <button id="job-assistant-autofill-close" type="button" title="Ocultar">x</button>
+      <div id="job-assistant-autofill-status"></div>
+    `;
+    box.style.cssText = [
+      "position:fixed",
+      "z-index:2147483646",
+      "right:16px",
+      "bottom:16px",
+      "display:grid",
+      "grid-template-columns:1fr auto",
+      "gap:8px",
+      "align-items:center",
+      "width:min(360px, calc(100vw - 32px))",
+      "padding:10px",
+      "background:#ffffff",
+      "border:1px solid #dce3ee",
+      "border-radius:8px",
+      "box-shadow:0 8px 24px rgba(0,0,0,.2)",
+      "font:13px Arial, sans-serif"
+    ].join(";");
+
+    document.documentElement.appendChild(box);
+    const button = box.querySelector("#job-assistant-autofill-btn");
+    const close = box.querySelector("#job-assistant-autofill-close");
+    const status = box.querySelector("#job-assistant-autofill-status");
+
+    button.style.cssText = "min-height:36px;border:0;border-radius:8px;background:#1769aa;color:white;font-weight:700;cursor:pointer";
+    close.style.cssText = "width:32px;height:32px;border:1px solid #dce3ee;border-radius:8px;background:white;cursor:pointer";
+    status.style.cssText = "grid-column:1/-1;color:#697386;min-height:18px";
+
+    close.addEventListener("click", () => box.remove());
+    button.addEventListener("click", () => runFloatingAutofill(status));
+  }
+
+  function runFloatingAutofill(status) {
+    status.textContent = "Autocompletando...";
+    chrome.runtime.sendMessage({ type: "GET_AUTOFILL_DATA" }, (data) => {
+      const profile = data?.profile || {};
+      const cv = data?.cv || {};
+      const message = buildQuickApplicationMessage(profile);
+      window.__jobAssistantProfile = profile;
+      window.__jobAssistantCv = {
+        fileName: cv.fileName || "",
+        fileDataUrl: cv.fileDataUrl || "",
+        fileType: cv.fileType || ""
+      };
+
+      showReviewBanner();
+      fillApplicationFields(message, "Postulacion Developer Jr");
+      clickStartApplicationButton();
+      [800, 1800].forEach((delay) => setTimeout(() => fillApplicationFields(message, "Postulacion Developer Jr"), delay));
+      status.textContent = getMissingFieldsSummary(profile, cv);
+    });
+  }
+
+  function buildQuickApplicationMessage(profile) {
+    return `Hola, mi nombre es ${profile.name || "Augusto Stephani"}. Estoy buscando mi primera experiencia profesional como Developer Jr. Tengo conocimientos en Python, Flask, SQLite, HTML, CSS, JavaScript, APIs REST, Postman, Git y GitHub, ademas de practica con proyectos CRUD, scraping y manejo de CSV/JSON/XLSX. Me interesa aportar, aprender rapido y crecer dentro del equipo. Muchas gracias.`;
+  }
+
+  function getMissingFieldsSummary(profile, cv) {
+    const missing = [];
+    if (!profile.email) missing.push("email");
+    if (!profile.phone) missing.push("telefono");
+    if (!cv.fileDataUrl) missing.push("CV");
+    return missing.length ? `Revisar: falta ${missing.join(", ")}.` : "Listo: revise campos resaltados antes de enviar.";
+  }
+
   function prepareApplicationFields(payload) {
     const messageText = payload.message || "";
     const subjectText = payload.subject || "";
@@ -310,10 +401,6 @@
 
     fillSelects();
     uploadCvIfPossible(window.__jobAssistantCv || {});
-
-    document.querySelectorAll("input[type='file']").forEach((input) => {
-      if (isVisible(input)) highlightField(input, "Adjuntar CV manualmente");
-    });
 
     [...document.querySelectorAll("button, input[type='submit'], a")]
       .filter((element) => isVisible(element) && /postular|enviar|solicitar|apply|submit/i.test(cleanText(element.textContent || element.value)))

@@ -55,6 +55,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     chrome.tabs.create({ url: chrome.runtime.getURL("dashboard.html") });
   }
 
+  if (message?.type === "GET_AUTOFILL_DATA") {
+    chrome.storage.local.get(["profile", "cv"], (data) => {
+      sendResponse({ profile: data.profile || {}, cv: data.cv || {} });
+    });
+    return true;
+  }
+
   if (message?.type === "OPEN_AND_PREPARE_APPLICATION") {
     const normalizedUrl = normalizeJobUrl(message.url);
     chrome.tabs.create({ url: normalizedUrl, active: true }, (tab) => {
