@@ -14,9 +14,16 @@
           <p id="count">0 ofertas</p>
         </div>
         <div class="header-actions">
+          <a href="stats.html">Estadisticas</a>
           <a href="options.html">Perfil</a>
         </div>
       </header>
+
+      <section class="weekly-summary">
+        <div><span id="weekApplied">0</span><p>Postuladas esta semana</p></div>
+        <div><span id="weekAnalyzed">0</span><p>Analizadas esta semana</p></div>
+        <div><span id="easyApplyCount">0</span><p>Easy Apply detectadas</p></div>
+      </section>
 
       <section class="toolbar">
         <nav class="job-tabs" aria-label="Ofertas">
@@ -49,6 +56,14 @@
         </div>
 
         <label>Asunto <input id="applySubject" type="text"></label>
+        <label>Plantilla
+          <select id="letterTemplate">
+            <option value="jr">Developer Jr</option>
+            <option value="backend">Backend / Python</option>
+            <option value="remote">Remoto</option>
+            <option value="trainee">Trainee / Primera experiencia</option>
+          </select>
+        </label>
         <section class="apply-summary">
           <p id="cvSummary">CV: no cargado</p>
           <p>La carta se genera con tus tecnologias y se puede editar antes de preparar la oferta.</p>

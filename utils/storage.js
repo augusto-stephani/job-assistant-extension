@@ -1,7 +1,11 @@
-export const JOB_STATUSES = ["nueva", "interesante", "descartada", "postulada", "entrevista", "rechazada"];
+export const JOB_STATUSES = ["nueva", "interesante", "descartada", "postulada", "entrevista", "rechazada", "oculta"];
 
 export const DEFAULT_PROFILE = {
   name: "Augusto Stephani",
+  lastName: "Stephani",
+  email: "",
+  phone: "",
+  address: "Argentina",
   location: "Argentina",
   objective: "Conseguir trabajo como Developer Jr, Backend Jr, Python Jr, Flask Jr, Trainee Developer o puesto similar.",
   skills: ["Python", "Flask", "Flask-CORS", "SQLite", "HTML", "CSS", "JavaScript basico", "APIs REST", "Postman", "Git", "GitHub", "requests", "BeautifulSoup", "lxml", "pandas", "PyYAML", "openpyxl", "CSV", "JSON", "React basico", "TypeScript basico", "Vite", "Three.js", "logica de programacion", "proyectos CRUD", "scraping"],

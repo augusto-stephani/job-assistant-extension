@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Estadisticas - Job Assistant Jr</title>
+    <link rel="stylesheet" href="stats.css">
+  </head>
+  <body>
+    <main class="page">
+      <header class="header">
+        <div>
+          <h1>Estadisticas</h1>
+          <p>Resumen de lo que piden las ofertas analizadas.</p>
+        </div>
+        <a href="dashboard.html">Dashboard</a>
+      </header>
+
+      <section class="summary-grid">
+        <div><span id="totalJobs">0</span><p>Ofertas analizadas</p></div>
+        <div><span id="appliedJobs">0</span><p>Postuladas</p></div>
+        <div><span id="averageScore">0</span><p>Score promedio</p></div>
+        <div><span id="remoteJobs">0</span><p>Remotas</p></div>
+      </section>
+
+      <section class="stats-grid">
+        <article>
+          <h2>Tecnologias mas pedidas</h2>
+          <div id="techList" class="list"></div>
+        </article>
+        <article>
+          <h2>Portales</h2>
+          <div id="sourceList" class="list"></div>
+        </article>
+        <article>
+          <h2>Modalidad</h2>
+          <div id="modalityList" class="list"></div>
+        </article>
+        <article>
+          <h2>Seniority / experiencia</h2>
+          <div id="seniorityList" class="list"></div>
+        </article>
+        <article class="wide">
+          <h2>Requisitos frecuentes</h2>
+          <div id="requirementsList" class="chips"></div>
+        </article>
+      </section>
+    </main>
+
+    <script type="module" src="stats.js"></script>
+  </body>
+</html>

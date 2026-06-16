@@ -4,6 +4,10 @@ chrome.runtime.onInstalled.addListener(() => {
       chrome.storage.local.set({
         profile: {
           name: "Augusto Stephani",
+          lastName: "Stephani",
+          email: "",
+          phone: "",
+          address: "Argentina",
           location: "Argentina",
           objective: "Conseguir trabajo como Developer Jr, Backend Jr, Python Jr, Flask Jr, Trainee Developer o puesto similar.",
           skills: ["Python", "Flask", "Flask-CORS", "SQLite", "HTML", "CSS", "JavaScript basico", "APIs REST", "Postman", "Git", "GitHub", "requests", "BeautifulSoup", "lxml", "pandas", "PyYAML", "openpyxl", "CSV", "JSON", "React basico", "TypeScript basico", "Vite", "logica de programacion", "proyectos CRUD", "scraping"],
@@ -59,7 +63,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         url: normalizedUrl,
         subject: message.subject || "",
         message: message.message || "",
-        cvFileName: message.cvFileName || ""
+        cvFileName: message.cvFileName || "",
+        cvFileDataUrl: message.cvFileDataUrl || "",
+        cvFileType: message.cvFileType || "",
+        profile: message.profile || {}
       });
       sendResponse({ ok: true });
     });

@@ -2,7 +2,7 @@ import { DEFAULT_PROFILE, DEFAULT_SETTINGS, getProfile, getSettings, saveProfile
 
 const form = document.querySelector("#profileForm");
 const status = document.querySelector("#status");
-const fields = ["name", "location", "objective", "skills", "experience", "english", "preferences", "avoid", "basePitch"];
+const fields = ["name", "lastName", "email", "phone", "address", "location", "objective", "skills", "experience", "english", "preferences", "avoid", "basePitch"];
 
 document.querySelector("#resetBtn").addEventListener("click", () => fillForm(DEFAULT_PROFILE));
 form.addEventListener("submit", save);

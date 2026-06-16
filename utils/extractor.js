@@ -19,6 +19,7 @@ export function extractJobData(pageData) {
     technologies: detectTechnologies(text),
     requirements: detectRequirements(text),
     salary: detectSalary(text),
+    applicationType: detectApplicationType(text, pageData?.url || ""),
     source: detectSource(pageData?.url || ""),
     url: pageData?.url || "No detectado",
     description: text ? text.slice(0, 1200) : "No detectado",
@@ -116,6 +117,13 @@ function detectSalary(text) {
   if (/sueldo a convenir|salario a convenir|remuneraci[oó]n a convenir/i.test(text)) return "A convenir";
   if (/no informa sueldo|sueldo no informado|salario no informado/i.test(text)) return "No informado";
   return match ? match[0] : "No detectado";
+}
+
+function detectApplicationType(text, url) {
+  if (/easy apply|solicitud sencilla|postulaci[oó]n sencilla|postulaci[oó]n r[aá]pida|postular f[aá]cil/i.test(text)) return "Easy Apply";
+  if (/linkedin\.com\/jobs\/view/i.test(url)) return "LinkedIn";
+  if (/computrabajo|zonajobs|indeed|bumeran/i.test(url)) return "Portal";
+  return "Externa";
 }
 
 function detectSource(url) {

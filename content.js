@@ -255,6 +255,12 @@
   function prepareApplicationFields(payload) {
     const messageText = payload.message || "";
     const subjectText = payload.subject || "";
+    window.__jobAssistantProfile = payload.profile || {};
+    window.__jobAssistantCv = {
+      fileName: payload.cvFileName || "",
+      fileDataUrl: payload.cvFileDataUrl || "",
+      fileType: payload.cvFileType || ""
+    };
 
     showReviewBanner();
     detectAlreadyApplied(payload.originalUrl || payload.url || window.location.href);
@@ -269,6 +275,7 @@
   }
 
   function fillApplicationFields(messageText, subjectText) {
+    const profile = window.__jobAssistantProfile || {};
     const writableFields = [...document.querySelectorAll("textarea, [contenteditable='true'], input[type='text'], input[type='email'], input[type='tel'], input:not([type])")]
       .filter((field) => isVisible(field) && !field.disabled && !field.readOnly);
 
@@ -279,13 +286,17 @@
       } else if (/asunto|subject/i.test(label)) {
         setFieldValue(field, subjectText);
       } else if (/nombre|name/i.test(label)) {
-        setFieldValue(field, "Augusto Stephani");
+        setFieldValue(field, profile.name || "Augusto Stephani");
+      } else if (/apellido|surname|last name|lastname/i.test(label)) {
+        setFieldValue(field, profile.lastName || "Stephani");
       } else if (/email|correo|mail/i.test(label)) {
-        highlightField(field, "Completar email");
+        profile.email ? setFieldValue(field, profile.email) : highlightField(field, "Completar email");
       } else if (/telefono|tel[eé]fono|phone|celular|mobile/i.test(label)) {
-        highlightField(field, "Completar telefono");
+        profile.phone ? setFieldValue(field, profile.phone) : highlightField(field, "Completar telefono");
+      } else if (/domicilio|direccion|direcci[oó]n|address/i.test(label)) {
+        setFieldValue(field, profile.address || "Argentina");
       } else if (/ubicaci[oó]n|location|pais|country/i.test(label)) {
-        setFieldValue(field, "Argentina");
+        setFieldValue(field, profile.location || "Argentina");
       } else if (/experiencia|experience/i.test(label)) {
         setFieldValue(field, "Estoy buscando mi primera experiencia profesional como Developer Jr. Tengo practica con proyectos CRUD, APIs REST, Python, Flask, SQLite, HTML, CSS, JavaScript, Git y GitHub.");
       } else if (/tecnolog|skill|herramienta|stack/i.test(label)) {
@@ -298,6 +309,7 @@
     });
 
     fillSelects();
+    uploadCvIfPossible(window.__jobAssistantCv || {});
 
     document.querySelectorAll("input[type='file']").forEach((input) => {
       if (isVisible(input)) highlightField(input, "Adjuntar CV manualmente");
@@ -324,6 +336,33 @@
         select.dispatchEvent(new Event("change", { bubbles: true }));
         highlightField(select, "Seleccion revisada automaticamente");
       });
+  }
+
+  async function uploadCvIfPossible(cv) {
+    const inputs = [...document.querySelectorAll("input[type='file']")].filter((input) => isVisible(input) && !input.disabled);
+    if (!inputs.length) return;
+
+    if (!cv.fileDataUrl || !cv.fileName) {
+      inputs.forEach((input) => highlightField(input, "Adjuntar CV manualmente"));
+      return;
+    }
+
+    try {
+      const response = await fetch(cv.fileDataUrl);
+      const blob = await response.blob();
+      const file = new File([blob], cv.fileName, { type: cv.fileType || blob.type || "application/pdf" });
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(file);
+
+      inputs.forEach((input) => {
+        input.files = dataTransfer.files;
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+        highlightField(input, "CV cargado por Job Assistant");
+      });
+    } catch (error) {
+      inputs.forEach((input) => highlightField(input, "No se pudo cargar CV automaticamente"));
+    }
   }
 
   function findOption(options, label) {

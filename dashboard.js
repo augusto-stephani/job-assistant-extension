@@ -1,7 +1,10 @@
-import { deleteJob, getCv, getJobs, normalizeJobUrl, updateJobStatus } from "./utils/storage.js";
+import { deleteJob, getCv, getJobs, getProfile, normalizeJobUrl, updateJobStatus } from "./utils/storage.js";
 
 const body = document.querySelector("#jobsBody");
 const count = document.querySelector("#count");
+const weekApplied = document.querySelector("#weekApplied");
+const weekAnalyzed = document.querySelector("#weekAnalyzed");
+const easyApplyCount = document.querySelector("#easyApplyCount");
 const emptyState = document.querySelector("#emptyState");
 const jobTabs = document.querySelectorAll(".job-tab");
 const sortBy = document.querySelector("#sortBy");
@@ -10,6 +13,7 @@ const applyTitle = document.querySelector("#applyTitle");
 const applyMeta = document.querySelector("#applyMeta");
 const applySubject = document.querySelector("#applySubject");
 const applyMessage = document.querySelector("#applyMessage");
+const letterTemplate = document.querySelector("#letterTemplate");
 const cvSummary = document.querySelector("#cvSummary");
 const applyStatus = document.querySelector("#applyStatus");
 const closeApplyBtn = document.querySelector("#closeApplyBtn");
@@ -21,6 +25,8 @@ const markAppliedBtn = document.querySelector("#markAppliedBtn");
 let jobs = [];
 let selectedJob = null;
 let activeTab = "new";
+let profile = null;
+let cv = null;
 
 init();
 
@@ -32,6 +38,9 @@ async function init() {
   copyApplyBtn.addEventListener("click", copyApplyMessage);
   openApplyUrlBtn.addEventListener("click", openSelectedOffer);
   markAppliedBtn.addEventListener("click", markSelectedApplied);
+  letterTemplate.addEventListener("change", updateLetterFromTemplate);
+  profile = await getProfile();
+  cv = await getCv();
   jobs = await getJobs();
   render();
   chrome.storage.onChanged.addListener((changes, area) => {
@@ -50,6 +59,7 @@ function setActiveTab(tabName) {
 function render() {
   const filtered = getFilteredJobs();
   count.textContent = `${filtered.length} oferta${filtered.length === 1 ? "" : "s"}`;
+  renderWeeklySummary();
   emptyState.classList.toggle("hidden", jobs.length > 0);
   body.innerHTML = filtered.map(renderCard).join("");
 
@@ -76,13 +86,21 @@ function render() {
       render();
     });
   });
+
+  body.querySelectorAll("[data-hide-url]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      await updateJobStatus(button.dataset.hideUrl, "oculta");
+      jobs = await getJobs();
+      render();
+    });
+  });
 }
 
 function getFilteredJobs() {
   const filtered = jobs.filter((job) => {
     if (activeTab === "applied") return job.status === "postulada";
-    if (activeTab === "low") return isLowChance(job);
-    return job.status !== "postulada" && !isLowChance(job);
+    if (activeTab === "low") return job.status !== "oculta" && job.status !== "postulada" && isLowChance(job);
+    return job.status !== "postulada" && job.status !== "oculta" && !isLowChance(job);
   });
 
   if (sortBy.value === "best") return filtered.sort((a, b) => getBestValue(b) - getBestValue(a));
@@ -109,6 +127,7 @@ function renderCard(job) {
         <div><dt>Modalidad</dt><dd>${escapeHtml(job.modality || "No detectado")}</dd></div>
         <div><dt>Experiencia</dt><dd>${escapeHtml(job.experienceRequired || "No detectado")}</dd></div>
         <div><dt>Sueldo</dt><dd>${escapeHtml(job.salary || "No detectado")}</dd></div>
+        <div><dt>Postulacion</dt><dd>${escapeHtml(job.applicationType || "No detectado")}</dd></div>
         <div><dt>Estado</dt><dd>${escapeHtml(job.status || "nueva")}</dd></div>
         <div><dt>Guardada</dt><dd>${formatDate(job.savedAt)}</dd></div>
         ${job.status === "postulada" ? `<div><dt>Postulacion</dt><dd>${formatDate(job.appliedAt)}</dd></div>` : ""}
@@ -122,10 +141,18 @@ function renderCard(job) {
         <a class="button-link" href="${escapeHtml(normalizeJobUrl(job.url))}" target="_blank" rel="noreferrer">Abrir</a>
         ${job.appliedUrl ? `<a class="button-link" href="${escapeHtml(job.appliedUrl)}" target="_blank" rel="noreferrer">Sitio postulacion</a>` : ""}
         ${job.status === "postulada" ? "" : `<button data-status-url="${escapeHtml(normalizeJobUrl(job.url))}" data-status-value="postulada">Marcar postulada</button>`}
+        <button data-hide-url="${escapeHtml(normalizeJobUrl(job.url))}">Ocultar</button>
         <button class="delete" data-delete-url="${escapeHtml(normalizeJobUrl(job.url))}">Eliminar</button>
       </div>
     </article>
   `;
+}
+
+function renderWeeklySummary() {
+  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  weekApplied.textContent = jobs.filter((job) => job.appliedAt && new Date(job.appliedAt).getTime() >= weekAgo).length;
+  weekAnalyzed.textContent = jobs.filter((job) => job.savedAt && new Date(job.savedAt).getTime() >= weekAgo).length;
+  easyApplyCount.textContent = jobs.filter((job) => /easy apply/i.test(job.applicationType || "")).length;
 }
 
 function isLowChance(job) {
@@ -169,6 +196,7 @@ function openApplyPanel(url) {
   applyMeta.textContent = `${selectedJob.source || "Pagina no detectada"} - ${selectedJob.company || "Empresa no detectada"} - Score ${Number(selectedJob.score || 0)} - ${selectedJob.salary || "Sueldo no detectado"}`;
   applySubject.value = email.subject || `Postulacion a ${selectedJob.title || "Developer Jr"}`;
   applyMessage.value = email.body || selectedJob.generatedMessage || "";
+  letterTemplate.value = "jr";
   applyStatus.textContent = "";
   renderApplicationSummary();
   applyPanel.classList.remove("hidden");
@@ -176,8 +204,12 @@ function openApplyPanel(url) {
 }
 
 async function renderApplicationSummary() {
-  const cv = await getCv();
   cvSummary.textContent = cv?.fileName ? `CV listo: ${cv.fileName}` : "CV: no hay archivo cargado";
+}
+
+function updateLetterFromTemplate() {
+  if (!selectedJob || !profile) return;
+  applyMessage.value = buildLetter(letterTemplate.value, selectedJob, profile);
 }
 
 function closeApplyPanel() {
@@ -198,7 +230,10 @@ async function prepareCurrentApplication() {
     url: selectedJob?.url,
     subject: applySubject.value,
     message: applyMessage.value,
-    cvFileName: (await getCv())?.fileName || ""
+    cvFileName: cv?.fileName || "",
+    cvFileDataUrl: cv?.fileDataUrl || "",
+    cvFileType: cv?.fileType || "",
+    profile
   });
   applyStatus.textContent = "Oferta abierta y texto preparado. Si enviaste la postulacion, toca Marcar postulada.";
 }
@@ -231,4 +266,26 @@ function escapeHtml(value) {
     '"': "&quot;",
     "'": "&#039;"
   }[char]));
+}
+
+function buildLetter(type, job, profileData) {
+  const title = job.title && job.title !== "No detectado" ? job.title : "Developer Jr";
+  const techs = "Python, Flask, SQLite, HTML, CSS, JavaScript, APIs REST, Postman, Git, GitHub, requests, BeautifulSoup, pandas, CSV, JSON y proyectos CRUD";
+  const remote = /remoto/i.test(job.modality || "") ? "Me interesa especialmente que la oportunidad sea remota. " : "";
+  const intro = `Hola,\n\nMi nombre es ${profileData.name || "Augusto Stephani"} y me gustaria postularme para la posicion de ${title}.`;
+  const close = `\n\nQuedo atento a la posibilidad de conversar.\n\nMuchas gracias por su tiempo.\n\nSaludos,\n${profileData.name || "Augusto Stephani"}`;
+
+  if (type === "backend") {
+    return `${intro}\n\nEstoy buscando mi primera experiencia profesional como Developer Jr orientado a backend. Tengo conocimientos en ${techs}, y practica creando APIs REST, sistemas CRUD, login/autenticacion y manejo de datos.\n\n${remote}Me interesa aportar con responsabilidad, aprender rapido y seguir creciendo en desarrollo backend.${close}`;
+  }
+
+  if (type === "remote") {
+    return `${intro}\n\nEstoy buscando mi primera experiencia profesional como Developer Jr. Tengo conocimientos en ${techs}.\n\nMe interesa especialmente trabajar en modalidad remota o hibrida, manteniendo buena comunicacion, organizacion y compromiso con el equipo.${close}`;
+  }
+
+  if (type === "trainee") {
+    return `${intro}\n\nEstoy buscando mi primera experiencia profesional en tecnologia. Tengo una base practica en ${techs}, con proyectos propios y muchas ganas de aprender dentro de un equipo real.\n\n${remote}Me considero responsable, constante y dispuesto a capacitarme rapidamente segun las necesidades del puesto.${close}`;
+  }
+
+  return `${intro}\n\nEstoy buscando mi primera experiencia profesional como Developer Jr. Tengo conocimientos en ${techs}, y practica creando proyectos CRUD, APIs REST, scraping y manejo de datos.\n\n${remote}Me interesa aportar, aprender rapido y crecer dentro del equipo.${close}`;
 }

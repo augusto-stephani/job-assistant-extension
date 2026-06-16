@@ -14,6 +14,10 @@ La extension funciona como asistente local: analiza ofertas visibles, prioriza o
 - Calcula un score de compatibilidad de 0 a 100.
 - Ordena el dashboard por mejores opciones.
 - Separa ofertas en tabs: nuevas, postuladas y menos chances.
+- Incluye contador semanal de analizadas/postuladas y deteccion de Easy Apply.
+- Permite ocultar ofertas que no queres volver a ver.
+- Incluye pagina de estadisticas para ver tecnologias, portales, modalidad y requisitos frecuentes.
+- Permite cambiar plantilla de carta antes de preparar una postulacion.
 - Genera un mensaje corto personalizado.
 - Genera un email de presentacion personalizado.
 - Guarda ofertas en `chrome.storage.local`.
@@ -67,7 +71,7 @@ Desde la pagina de opciones se puede editar:
 - Si un dato no aparece visible o esta dentro de componentes bloqueados, puede figurar como `No detectado`.
 - El score es heuristico: sirve para priorizar, no reemplaza la revision humana.
 - Los mensajes generados deben revisarse antes de enviarse.
-- Por seguridad del navegador, una extension no puede adjuntar archivos a un input file automaticamente.
+- Intenta cargar el CV guardado en formularios con input de archivo cuando el navegador y la pagina lo permiten; si no, resalta el campo para adjuntarlo manualmente.
 - No marca en verde solo por abrir una oferta. Si detecta que tocaste un boton final de envio en la pagina preparada, actualiza la oferta como postulada; tambien se puede marcar manualmente.
 - Todo queda guardado localmente en el navegador.
 - Las extensiones cargadas como descomprimidas no se actualizan solas. El repo genera un ZIP en GitHub Actions en cada push. Para actualizacion automatica real hay que publicar en Chrome Web Store o instalarla con una politica empresarial con `update_url`.
