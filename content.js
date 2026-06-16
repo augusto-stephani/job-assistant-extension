@@ -11,10 +11,20 @@
 
   function absoluteUrl(value) {
     try {
-      return new URL(value, window.location.href).href;
+      const url = new URL(value, window.location.href);
+      ["trk", "refId", "trackingId", "lipi", "position", "pageNum"].forEach((key) => url.searchParams.delete(key));
+      return url.href;
     } catch (error) {
       return "";
     }
+  }
+
+  function isBlockedLink(href) {
+    return /(premium|products|sales|learning|feed|messaging|notifications|company|school|salary|salaries|login|signin|signup|help|privacy|legal|talent|recruiter|ads|campaign|uas\/login|checkpoint)/i.test(href);
+  }
+
+  function isStrongJobUrl(href) {
+    return /(linkedin\.com\/jobs\/view\/|\/jobs\/view\/|\/job\/|\/jobs\/|\/empleo\/|\/empleos\/|\/oferta\/|\/ofertas\/|\/trabajo\/|\/trabajos\/)/i.test(href);
   }
 
   function getVisibleText() {
@@ -56,8 +66,9 @@
     const href = anchor.href || "";
     const text = cleanText(anchor.textContent);
     const haystack = `${href} ${text}`.toLowerCase();
-    const hrefLooksValid = /(job|jobs|empleo|empleos|trabajo|trabajos|oferta|ofertas|vacante|puesto|developer|programador|desarrollador|backend|frontend|python|trainee|junior|jr)/i.test(haystack);
-    const notNavigation = !/(login|signin|registro|empresa|salario|blog|contacto|politica|privacy|ayuda|help)/i.test(haystack);
+    if (isBlockedLink(href)) return false;
+    const hrefLooksValid = isStrongJobUrl(href) || /(job|jobs|empleo|empleos|trabajo|trabajos|oferta|ofertas|vacante|puesto|developer|programador|desarrollador|backend|frontend|python|trainee|junior|jr)/i.test(haystack);
+    const notNavigation = !/(login|signin|registro|empresa|salario|blog|contacto|politica|privacy|ayuda|help|premium)/i.test(haystack);
     return text.length >= 5 && hrefLooksValid && notNavigation;
   }
 
@@ -139,7 +150,7 @@
     const fromCards = getJobCards()
       .map((card) => {
         const anchors = [...card.querySelectorAll("a[href]")].filter(looksLikeJobLink);
-        const anchor = anchors[0] || card.querySelector("a[href]");
+        const anchor = getBestJobAnchor(anchors) || getBestJobAnchor([...card.querySelectorAll("a[href]")]);
         if (!anchor) return null;
 
         return {
@@ -163,10 +174,30 @@
     return [...fromCards, ...fromAnchors]
       .filter((item) => {
         if (!item.url || seen.has(item.url)) return false;
+        if (isBlockedLink(item.url)) return false;
         seen.add(item.url);
         return true;
       })
       .slice(0, 60);
+  }
+
+  function getBestJobAnchor(anchors) {
+    const valid = anchors
+      .filter((anchor) => anchor?.href && !isBlockedLink(anchor.href))
+      .sort((a, b) => scoreAnchor(b) - scoreAnchor(a));
+    return valid[0] || null;
+  }
+
+  function scoreAnchor(anchor) {
+    const href = anchor.href || "";
+    const text = cleanText(anchor.textContent);
+    let score = 0;
+    if (/linkedin\.com\/jobs\/view\//i.test(href)) score += 100;
+    if (isStrongJobUrl(href)) score += 50;
+    if (/(developer|programador|desarrollador|backend|frontend|junior|jr|trainee|python|flask)/i.test(text)) score += 20;
+    if (text.length >= 8 && text.length <= 160) score += 10;
+    if (isBlockedLink(href)) score -= 200;
+    return score;
   }
 
   function isLikelyListingPage() {
