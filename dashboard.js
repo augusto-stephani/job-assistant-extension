@@ -3,7 +3,7 @@ import { deleteJob, getCv, getJobs, JOB_STATUSES, updateJobStatus } from "./util
 const body = document.querySelector("#jobsBody");
 const count = document.querySelector("#count");
 const emptyState = document.querySelector("#emptyState");
-const filterStatus = document.querySelector("#filterStatus");
+const jobTabs = document.querySelectorAll(".job-tab");
 const sortBy = document.querySelector("#sortBy");
 const applyPanel = document.querySelector("#applyPanel");
 const applyTitle = document.querySelector("#applyTitle");
@@ -20,12 +20,12 @@ const markAppliedBtn = document.querySelector("#markAppliedBtn");
 
 let jobs = [];
 let selectedJob = null;
+let activeTab = "new";
 
 init();
 
 async function init() {
-  filterStatus.innerHTML = `<option value="all">Todos</option>${JOB_STATUSES.map((status) => `<option value="${status}">${status}</option>`).join("")}`;
-  filterStatus.addEventListener("change", render);
+  jobTabs.forEach((tab) => tab.addEventListener("click", () => setActiveTab(tab.dataset.tab)));
   sortBy.addEventListener("change", render);
   closeApplyBtn.addEventListener("click", closeApplyPanel);
   prepareApplyBtn.addEventListener("click", prepareCurrentApplication);
@@ -34,17 +34,28 @@ async function init() {
   markAppliedBtn.addEventListener("click", markSelectedApplied);
   jobs = await getJobs();
   render();
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== "local" || !changes.jobs) return;
+    jobs = Array.isArray(changes.jobs.newValue) ? changes.jobs.newValue : [];
+    render();
+  });
+}
+
+function setActiveTab(tabName) {
+  activeTab = tabName;
+  jobTabs.forEach((tab) => tab.classList.toggle("active", tab.dataset.tab === activeTab));
+  render();
 }
 
 function render() {
   const filtered = getFilteredJobs();
   count.textContent = `${filtered.length} oferta${filtered.length === 1 ? "" : "s"}`;
   emptyState.classList.toggle("hidden", jobs.length > 0);
-  body.innerHTML = filtered.map(renderRow).join("");
+  body.innerHTML = filtered.map(renderCard).join("");
 
-  body.querySelectorAll("[data-status-url]").forEach((select) => {
-    select.addEventListener("change", async () => {
-      await updateJobStatus(select.dataset.statusUrl, select.value);
+  body.querySelectorAll("[data-status-url]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      await updateJobStatus(button.dataset.statusUrl, button.dataset.statusValue);
       jobs = await getJobs();
       render();
     });
@@ -68,8 +79,11 @@ function render() {
 }
 
 function getFilteredJobs() {
-  const status = filterStatus.value;
-  const filtered = status === "all" ? [...jobs] : jobs.filter((job) => job.status === status);
+  const filtered = jobs.filter((job) => {
+    if (activeTab === "applied") return job.status === "postulada";
+    if (activeTab === "low") return isLowChance(job);
+    return job.status !== "postulada" && !isLowChance(job);
+  });
 
   if (sortBy.value === "best") return filtered.sort((a, b) => getBestValue(b) - getBestValue(a));
   if (sortBy.value === "score") return filtered.sort((a, b) => (b.score || 0) - (a.score || 0));
@@ -77,31 +91,52 @@ function getFilteredJobs() {
   return filtered.sort((a, b) => new Date(b.savedAt || 0) - new Date(a.savedAt || 0));
 }
 
-function renderRow(job) {
-  const statusOptions = JOB_STATUSES.map((status) => `<option value="${status}" ${job.status === status ? "selected" : ""}>${status}</option>`).join("");
-  const rowClass = job.status === "postulada" ? "is-applied" : "";
+function renderCard(job) {
+  const cardClass = job.status === "postulada" ? "job-card is-applied" : "job-card";
+  const lowReasons = getLowChanceReasons(job);
   return `
-    <tr class="${rowClass}">
-      <td>${escapeHtml(job.title || "No detectado")}</td>
-      <td>${escapeHtml(job.company || "No detectado")}</td>
-      <td>${escapeHtml(job.source || "No detectado")}</td>
-      <td>${escapeHtml(job.location || "No detectado")}</td>
-      <td>${escapeHtml(job.modality || "No detectado")}</td>
-      <td>${escapeHtml(job.experienceRequired || "No detectado")}</td>
-      <td>${escapeHtml(job.salary || "No detectado")}</td>
-      <td class="score">${Number(job.score || 0)}</td>
-      <td><select class="status-select" data-status-url="${escapeHtml(job.url)}">${statusOptions}</select></td>
-      <td>${formatDate(job.savedAt)}</td>
-      <td><a href="${escapeHtml(job.url)}" target="_blank" rel="noreferrer">Abrir</a></td>
-      <td>
-        <div class="row-actions">
-          <button data-apply-url="${escapeHtml(job.url)}">Postular</button>
-          <button data-copy-url="${escapeHtml(job.url)}">Copiar mensaje</button>
-          <button class="delete" data-delete-url="${escapeHtml(job.url)}">Eliminar</button>
+    <article class="${cardClass}">
+      <header class="job-card-header">
+        <div>
+          <h2>${escapeHtml(job.title || "No detectado")}</h2>
+          <p>${escapeHtml(job.company || "Empresa no detectada")} · ${escapeHtml(job.source || "Pagina no detectada")}</p>
         </div>
-      </td>
-    </tr>
+        <div class="score-pill">${Number(job.score || 0)}</div>
+      </header>
+
+      <dl class="job-meta">
+        <div><dt>Ubicacion</dt><dd>${escapeHtml(job.location || "No detectado")}</dd></div>
+        <div><dt>Modalidad</dt><dd>${escapeHtml(job.modality || "No detectado")}</dd></div>
+        <div><dt>Experiencia</dt><dd>${escapeHtml(job.experienceRequired || "No detectado")}</dd></div>
+        <div><dt>Sueldo</dt><dd>${escapeHtml(job.salary || "No detectado")}</dd></div>
+        <div><dt>Estado</dt><dd>${escapeHtml(job.status || "nueva")}</dd></div>
+        <div><dt>Guardada</dt><dd>${formatDate(job.savedAt)}</dd></div>
+      </dl>
+
+      ${lowReasons.length ? `<p class="low-reasons">${escapeHtml(lowReasons.join(" · "))}</p>` : ""}
+
+      <div class="job-actions">
+        <button class="primary" data-apply-url="${escapeHtml(job.url)}">Postular</button>
+        <button data-copy-url="${escapeHtml(job.url)}">Copiar</button>
+        <a class="button-link" href="${escapeHtml(job.url)}" target="_blank" rel="noreferrer">Abrir</a>
+        ${job.status === "postulada" ? "" : `<button data-status-url="${escapeHtml(job.url)}" data-status-value="postulada">Marcar postulada</button>`}
+        <button class="delete" data-delete-url="${escapeHtml(job.url)}">Eliminar</button>
+      </div>
+    </article>
   `;
+}
+
+function isLowChance(job) {
+  return Number(job.score || 0) < 45 || /senior|ssr|semi senior/i.test(job.seniority || "") || /4|5|6|7|8|9|10/i.test(job.experienceRequired || "") || (/presencial/i.test(job.modality || "") && !/argentina|buenos aires|caba/i.test(job.location || ""));
+}
+
+function getLowChanceReasons(job) {
+  const reasons = [];
+  if (Number(job.score || 0) < 45) reasons.push("score bajo");
+  if (/senior|ssr|semi senior/i.test(job.seniority || "")) reasons.push("seniority alto");
+  if (/4|5|6|7|8|9|10/i.test(job.experienceRequired || "")) reasons.push("mucha experiencia");
+  if (/presencial/i.test(job.modality || "") && !/argentina|buenos aires|caba/i.test(job.location || "")) reasons.push("zona/modalidad menos conveniente");
+  return reasons;
 }
 
 function getBestValue(job) {
@@ -161,8 +196,7 @@ async function prepareCurrentApplication() {
     message: applyMessage.value,
     cvFileName: (await getCv())?.fileName || ""
   });
-  await markSelectedApplied(false);
-  applyStatus.textContent = "Oferta abierta, texto preparado y marcada como postulada. Revisa antes de enviar.";
+  applyStatus.textContent = "Oferta abierta y texto preparado. Si enviaste la postulacion, toca Marcar postulada.";
 }
 
 function openSelectedOffer() {

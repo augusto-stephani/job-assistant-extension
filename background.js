@@ -32,11 +32,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type === "OPEN_AND_PREPARE_APPLICATION") {
     chrome.tabs.create({ url: message.url, active: true }, (tab) => {
       pendingApplications.set(tab.id, {
+        url: message.url || "",
         subject: message.subject || "",
         message: message.message || "",
         cvFileName: message.cvFileName || ""
       });
       sendResponse({ ok: true });
+    });
+    return true;
+  }
+
+  if (message?.type === "APPLICATION_SUBMITTED") {
+    chrome.storage.local.get(["jobs"], (data) => {
+      const jobs = Array.isArray(data.jobs) ? data.jobs : [];
+      const updated = jobs.map((job) => job.url === message.url ? { ...job, status: "postulada", updatedAt: new Date().toISOString() } : job);
+      chrome.storage.local.set({ jobs: updated }, () => sendResponse({ ok: true }));
     });
     return true;
   }

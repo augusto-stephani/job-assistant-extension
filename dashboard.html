@@ -19,7 +19,11 @@
       </header>
 
       <section class="toolbar">
-        <label>Estado <select id="filterStatus"></select></label>
+        <nav class="job-tabs" aria-label="Ofertas">
+          <button class="job-tab active" data-tab="new">Nuevas</button>
+          <button class="job-tab" data-tab="applied">Postuladas</button>
+          <button class="job-tab" data-tab="low">Menos chances</button>
+        </nav>
         <label>Orden <select id="sortBy">
           <option value="best">Mejores opciones</option>
           <option value="score">Score mayor primero</option>
@@ -33,27 +37,7 @@
         <p>Analiza una oferta desde el popup y guardala para verla aca.</p>
       </section>
 
-      <section class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Titulo</th>
-              <th>Empresa</th>
-              <th>Pagina</th>
-              <th>Ubicacion</th>
-              <th>Modalidad</th>
-              <th>Experiencia</th>
-              <th>Sueldo</th>
-              <th>Score</th>
-              <th>Estado</th>
-              <th>Fecha</th>
-              <th>Link</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody id="jobsBody"></tbody>
-        </table>
-      </section>
+      <section id="jobsBody" class="jobs-grid"></section>
 
       <section id="applyPanel" class="apply-panel hidden">
         <div class="apply-header">

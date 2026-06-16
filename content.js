@@ -239,6 +239,7 @@
     [700, 1600, 3000].forEach((delay) => {
       setTimeout(() => fillApplicationFields(messageText, subjectText), delay);
     });
+    watchFinalSubmit(payload.url || window.location.href);
   }
 
   function fillApplicationFields(messageText, subjectText) {
@@ -324,6 +325,21 @@
     if (!first) return;
     first.style.outline = "3px solid #1769aa";
     first.click();
+  }
+
+  function watchFinalSubmit(jobUrl) {
+    const handler = (event) => {
+      const target = event.target?.closest?.("button, input[type='submit'], a");
+      if (!target) return;
+
+      const text = cleanText(target.textContent || target.value).toLowerCase();
+      if (!/(enviar|submit|finalizar|confirmar|postular|solicitar|apply)/i.test(text)) return;
+
+      chrome.runtime.sendMessage({ type: "APPLICATION_SUBMITTED", url: jobUrl });
+      document.removeEventListener("click", handler, true);
+    };
+
+    document.addEventListener("click", handler, true);
   }
 
   function showReviewBanner() {

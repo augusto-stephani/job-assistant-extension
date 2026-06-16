@@ -13,6 +13,7 @@ La extension funciona como asistente local: analiza ofertas visibles, prioriza o
 - Compara la oferta con el perfil configurado.
 - Calcula un score de compatibilidad de 0 a 100.
 - Ordena el dashboard por mejores opciones.
+- Separa ofertas en tabs: nuevas, postuladas y menos chances.
 - Genera un mensaje corto personalizado.
 - Genera un email de presentacion personalizado.
 - Guarda ofertas en `chrome.storage.local`.
@@ -65,7 +66,7 @@ Desde la pagina de opciones se puede editar:
 - El score es heuristico: sirve para priorizar, no reemplaza la revision humana.
 - Los mensajes generados deben revisarse antes de enviarse.
 - Por seguridad del navegador, una extension no puede adjuntar archivos a un input file automaticamente.
-- No presiona botones finales de envio; prepara, autocompleta texto, resalta campos a revisar y marca la oferta como postulada en el dashboard.
+- No marca en verde solo por abrir una oferta. Si detecta que tocaste un boton final de envio en la pagina preparada, actualiza la oferta como postulada; tambien se puede marcar manualmente.
 - Todo queda guardado localmente en el navegador.
 - Las extensiones cargadas como descomprimidas no se actualizan solas. El repo genera un ZIP en GitHub Actions en cada push. Para actualizacion automatica real hay que publicar en Chrome Web Store o instalarla con una politica empresarial con `update_url`.
 
