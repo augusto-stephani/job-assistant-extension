@@ -17,7 +17,8 @@ export const DEFAULT_PROFILE = {
 };
 
 export const DEFAULT_SETTINGS = {
-  autoSaveScore: 80
+  autoSaveScore: 80,
+  floatingAutofillEnabled: true
 };
 
 function chromeGet(keys) {

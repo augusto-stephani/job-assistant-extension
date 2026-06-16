@@ -1,4 +1,25 @@
 (function () {
+  const AUTOFILL_ALLOWED_HOSTS = [
+    "linkedin.com",
+    "computrabajo.com.ar",
+    "indeed.com",
+    "ar.indeed.com",
+    "zonajobs.com.ar",
+    "bumeran.com.ar",
+    "glassdoor.com",
+    "getonbrd.com",
+    "hiringroom.com",
+    "workdayjobs.com",
+    "greenhouse.io",
+    "lever.co",
+    "smartrecruiters.com",
+    "jobvite.com",
+    "ashbyhq.com",
+    "breezy.hr",
+    "remoteok.com",
+    "weworkremotely.com"
+  ];
+
   function isVisible(element) {
     const style = window.getComputedStyle(element);
     const rect = element.getBoundingClientRect();
@@ -43,6 +64,23 @@
 
   function isStrongJobUrl(href) {
     return /(linkedin\.com\/jobs\/view\/|\/jobs\/view\/|\/job\/|\/jobs\/|\/empleo\/|\/empleos\/|\/oferta\/|\/ofertas\/|\/trabajo\/|\/trabajos\/)/i.test(href);
+  }
+
+  function isAllowedAutofillSite() {
+    const host = window.location.hostname.replace(/^www\./, "").toLowerCase();
+    return AUTOFILL_ALLOWED_HOSTS.some((allowedHost) => host === allowedHost || host.endsWith(`.${allowedHost}`));
+  }
+
+  function getFloatingAutofillEnabled() {
+    return new Promise((resolve) => {
+      chrome.storage.local.get(["settings"], (data) => {
+        resolve(data.settings?.floatingAutofillEnabled !== false);
+      });
+    });
+  }
+
+  function removeFloatingAutofill() {
+    document.querySelector("#job-assistant-autofill")?.remove();
   }
 
   function getVisibleText() {
@@ -255,7 +293,18 @@
   initFloatingAutofill();
 
   function initFloatingAutofill() {
-    const tryRender = () => {
+    if (!isAllowedAutofillSite()) {
+      removeFloatingAutofill();
+      return;
+    }
+
+    const tryRender = async () => {
+      const enabled = await getFloatingAutofillEnabled();
+      if (!enabled) {
+        removeFloatingAutofill();
+        return;
+      }
+
       if (document.querySelector("#job-assistant-autofill")) return;
       if (!hasApplicationForm()) return;
       renderFloatingAutofill();
@@ -263,6 +312,12 @@
 
     tryRender();
     setInterval(tryRender, 2500);
+
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName !== "local" || !changes.settings) return;
+      if (changes.settings.newValue?.floatingAutofillEnabled === false) removeFloatingAutofill();
+      if (changes.settings.newValue?.floatingAutofillEnabled === true) tryRender();
+    });
   }
 
   function hasApplicationForm() {

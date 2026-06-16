@@ -1,7 +1,7 @@
 import { analyzeJob } from "./utils/analyzer.js";
 import { extractJobData } from "./utils/extractor.js";
 import { generateEmail, generateShortMessage } from "./utils/messageGenerator.js";
-import { getCv, getProfile, getSettings, JOB_STATUSES, saveCv, saveJob } from "./utils/storage.js";
+import { getCv, getProfile, getSettings, JOB_STATUSES, saveCv, saveJob, saveSettings } from "./utils/storage.js";
 
 const AUTO_SAVE_STATUS = "interesante";
 
@@ -11,6 +11,7 @@ const elements = {
   panels: document.querySelectorAll(".panel"),
   analyzeBtn: document.querySelector("#analyzeBtn"),
   dashboardBtn: document.querySelector("#dashboardBtn"),
+  floatingAutofillToggle: document.querySelector("#floatingAutofillToggle"),
   openOptions: document.querySelector("#openOptions"),
   result: document.querySelector("#result"),
   scoreValue: document.querySelector("#scoreValue"),
@@ -58,10 +59,12 @@ init();
 async function init() {
   currentProfile = await getProfile();
   currentSettings = await getSettings();
+  elements.floatingAutofillToggle.checked = Boolean(currentSettings.floatingAutofillEnabled);
   elements.statusSelect.innerHTML = JOB_STATUSES.map((status) => `<option value="${status}">${status}</option>`).join("");
   elements.tabs.forEach((tab) => tab.addEventListener("click", () => activateTab(tab.dataset.tab)));
   elements.analyzeBtn.addEventListener("click", analyzeCurrentPage);
   elements.dashboardBtn.addEventListener("click", () => chrome.runtime.sendMessage({ type: "OPEN_DASHBOARD" }));
+  elements.floatingAutofillToggle.addEventListener("change", saveFloatingAutofillSetting);
   elements.openOptions.addEventListener("click", () => chrome.runtime.openOptionsPage());
   elements.messageBtn.addEventListener("click", showShortMessage);
   elements.emailBtn.addEventListener("click", showEmail);
@@ -75,6 +78,16 @@ async function init() {
   elements.copyCvBtn.addEventListener("click", copyCvText);
   elements.downloadCvBtn.addEventListener("click", downloadStoredCv);
   loadCv();
+}
+
+async function saveFloatingAutofillSetting() {
+  currentSettings = await saveSettings({
+    ...currentSettings,
+    floatingAutofillEnabled: elements.floatingAutofillToggle.checked
+  });
+  elements.pageStatus.textContent = elements.floatingAutofillToggle.checked
+    ? "Autocompletar activado en portales laborales."
+    : "Autocompletar apagado.";
 }
 
 function activateTab(panelId) {
