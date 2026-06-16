@@ -1,0 +1,281 @@
+import { deleteJob, getCv, getJobs, JOB_STATUSES, updateJobStatus } from "./utils/storage.js";
+
+const body = document.querySelector("#jobsBody");
+const count = document.querySelector("#count");
+const emptyState = document.querySelector("#emptyState");
+const filterStatus = document.querySelector("#filterStatus");
+const sortBy = document.querySelector("#sortBy");
+const bulkApplyBtn = document.querySelector("#bulkApplyBtn");
+const applyAllBtn = document.querySelector("#applyAllBtn");
+const applyPanel = document.querySelector("#applyPanel");
+const applyTitle = document.querySelector("#applyTitle");
+const applyMeta = document.querySelector("#applyMeta");
+const applySubject = document.querySelector("#applySubject");
+const applyMessage = document.querySelector("#applyMessage");
+const cvSummary = document.querySelector("#cvSummary");
+const applyStatus = document.querySelector("#applyStatus");
+const closeApplyBtn = document.querySelector("#closeApplyBtn");
+const prepareApplyBtn = document.querySelector("#prepareApplyBtn");
+const copyApplyBtn = document.querySelector("#copyApplyBtn");
+const downloadApplyCvBtn = document.querySelector("#downloadApplyCvBtn");
+const openApplyUrlBtn = document.querySelector("#openApplyUrlBtn");
+const markAppliedBtn = document.querySelector("#markAppliedBtn");
+const nextBulkBtn = document.querySelector("#nextBulkBtn");
+
+let jobs = [];
+let selectedJob = null;
+let bulkQueue = [];
+let bulkIndex = 0;
+
+init();
+
+async function init() {
+  filterStatus.innerHTML = `<option value="all">Todos</option>${JOB_STATUSES.map((status) => `<option value="${status}">${status}</option>`).join("")}`;
+  filterStatus.addEventListener("change", render);
+  sortBy.addEventListener("change", render);
+  bulkApplyBtn.addEventListener("click", startBulkApply);
+  applyAllBtn.addEventListener("click", startAllApply);
+  closeApplyBtn.addEventListener("click", closeApplyPanel);
+  prepareApplyBtn.addEventListener("click", prepareCurrentApplication);
+  copyApplyBtn.addEventListener("click", copyApplyMessage);
+  downloadApplyCvBtn.addEventListener("click", downloadCv);
+  openApplyUrlBtn.addEventListener("click", openSelectedOffer);
+  markAppliedBtn.addEventListener("click", markSelectedApplied);
+  nextBulkBtn.addEventListener("click", openNextBulkJob);
+  jobs = await getJobs();
+  render();
+}
+
+function render() {
+  const filtered = getFilteredJobs();
+  count.textContent = `${filtered.length} oferta${filtered.length === 1 ? "" : "s"}`;
+  emptyState.classList.toggle("hidden", jobs.length > 0);
+  body.innerHTML = filtered.map(renderRow).join("");
+
+  body.querySelectorAll("[data-status-url]").forEach((select) => {
+    select.addEventListener("change", async () => {
+      await updateJobStatus(select.dataset.statusUrl, select.value);
+      jobs = await getJobs();
+      render();
+    });
+  });
+
+  body.querySelectorAll("[data-copy-url]").forEach((button) => {
+    button.addEventListener("click", () => copyMessage(button.dataset.copyUrl));
+  });
+
+  body.querySelectorAll("[data-apply-url]").forEach((button) => {
+    button.addEventListener("click", () => openApplyPanel(button.dataset.applyUrl));
+  });
+
+  body.querySelectorAll("[data-delete-url]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      await deleteJob(button.dataset.deleteUrl);
+      jobs = await getJobs();
+      render();
+    });
+  });
+}
+
+function getFilteredJobs() {
+  const status = filterStatus.value;
+  const filtered = status === "all" ? [...jobs] : jobs.filter((job) => job.status === status);
+
+  if (sortBy.value === "best") return filtered.sort((a, b) => getBestValue(b) - getBestValue(a));
+  if (sortBy.value === "score") return filtered.sort((a, b) => (b.score || 0) - (a.score || 0));
+  if (sortBy.value === "title") return filtered.sort((a, b) => String(a.title).localeCompare(String(b.title)));
+  return filtered.sort((a, b) => new Date(b.savedAt || 0) - new Date(a.savedAt || 0));
+}
+
+function renderRow(job) {
+  const statusOptions = JOB_STATUSES.map((status) => `<option value="${status}" ${job.status === status ? "selected" : ""}>${status}</option>`).join("");
+  return `
+    <tr>
+      <td>${escapeHtml(job.title || "No detectado")}</td>
+      <td>${escapeHtml(job.company || "No detectado")}</td>
+      <td>${escapeHtml(job.source || "No detectado")}</td>
+      <td>${escapeHtml(job.location || "No detectado")}</td>
+      <td>${escapeHtml(job.modality || "No detectado")}</td>
+      <td>${escapeHtml(job.experienceRequired || "No detectado")}</td>
+      <td>${escapeHtml(job.salary || "No detectado")}</td>
+      <td class="score">${Number(job.score || 0)}</td>
+      <td><select class="status-select" data-status-url="${escapeHtml(job.url)}">${statusOptions}</select></td>
+      <td>${formatDate(job.savedAt)}</td>
+      <td><a href="${escapeHtml(job.url)}" target="_blank" rel="noreferrer">Abrir</a></td>
+      <td>
+        <div class="row-actions">
+          <button data-apply-url="${escapeHtml(job.url)}">Postular</button>
+          <button data-copy-url="${escapeHtml(job.url)}">Copiar mensaje</button>
+          <button class="delete" data-delete-url="${escapeHtml(job.url)}">Eliminar</button>
+        </div>
+      </td>
+    </tr>
+  `;
+}
+
+function getBestValue(job) {
+  let value = Number(job.score || 0);
+  if (/remoto/i.test(job.modality || "")) value += 12;
+  if (/hibrido/i.test(job.modality || "")) value += 4;
+  if (/argentina|latam|buenos aires|caba/i.test(job.location || "")) value += 6;
+  if (job.salary && !/no detectado|no informado/i.test(job.salary)) value += 5;
+  if (/sin experiencia|deseable|0|1|2/i.test(job.experienceRequired || "")) value += 8;
+  if (/senior|ssr|semi senior/i.test(job.seniority || "")) value -= 20;
+  return value;
+}
+
+async function copyMessage(url) {
+  const job = jobs.find((item) => item.url === url);
+  const text = job?.generatedMessage || "No hay mensaje generado.";
+  await navigator.clipboard.writeText(text);
+}
+
+function openApplyPanel(url) {
+  selectedJob = jobs.find((item) => item.url === url);
+  if (!selectedJob) return;
+
+  const email = selectedJob.generatedEmail || {};
+  applyTitle.textContent = selectedJob.title || "Postular";
+  applyMeta.textContent = `${selectedJob.source || "Pagina no detectada"} - ${selectedJob.company || "Empresa no detectada"} - Score ${Number(selectedJob.score || 0)} - ${selectedJob.salary || "Sueldo no detectado"}`;
+  applySubject.value = email.subject || `Postulacion a ${selectedJob.title || "Developer Jr"}`;
+  applyMessage.value = email.body || selectedJob.generatedMessage || "";
+  applyStatus.textContent = "";
+  renderApplicationSummary();
+  nextBulkBtn.classList.toggle("hidden", bulkQueue.length === 0);
+  applyPanel.classList.remove("hidden");
+  applyPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function renderApplicationSummary() {
+  const cv = await getCv();
+  cvSummary.textContent = cv?.fileName ? `CV listo: ${cv.fileName}` : "CV: no hay archivo cargado";
+}
+
+function closeApplyPanel() {
+  selectedJob = null;
+  bulkQueue = [];
+  bulkIndex = 0;
+  nextBulkBtn.classList.add("hidden");
+  applyPanel.classList.add("hidden");
+}
+
+async function copyApplyMessage() {
+  const fullText = `Asunto: ${applySubject.value}\n\n${applyMessage.value}`;
+  await navigator.clipboard.writeText(fullText);
+  applyStatus.textContent = "Mensaje copiado. Podes pegarlo en la oferta.";
+}
+
+async function prepareCurrentApplication() {
+  await copyApplyMessage();
+  await downloadCv();
+  chrome.runtime.sendMessage({
+    type: "OPEN_AND_PREPARE_APPLICATION",
+    url: selectedJob?.url,
+    subject: applySubject.value,
+    message: applyMessage.value,
+    cvFileName: (await getCv())?.fileName || ""
+  });
+  applyStatus.textContent = "Oferta abierta y preparada. Revisa campos resaltados antes de enviar.";
+}
+
+async function downloadCv() {
+  const cv = await getCv();
+  if (!cv?.fileDataUrl) {
+    applyStatus.textContent = "No hay CV cargado. Cargalo desde la extension.";
+    return;
+  }
+
+  const link = document.createElement("a");
+  link.href = cv.fileDataUrl;
+  link.download = cv.fileName || "cv";
+  link.click();
+  applyStatus.textContent = "CV listo para adjuntar.";
+}
+
+function openSelectedOffer() {
+  if (!selectedJob?.url) return;
+  window.open(selectedJob.url, "_blank", "noreferrer");
+  applyStatus.textContent = "Oferta abierta. Adjunta el CV y pega el mensaje revisado.";
+}
+
+async function markSelectedApplied() {
+  if (!selectedJob?.url) return;
+  await updateJobStatus(selectedJob.url, "postulada");
+  jobs = await getJobs();
+  selectedJob = jobs.find((item) => item.url === selectedJob.url);
+  render();
+  applyStatus.textContent = "Marcada como postulada.";
+}
+
+function startBulkApply() {
+  bulkQueue = jobs
+    .filter((job) => Number(job.score || 0) >= 80 && job.status !== "postulada")
+    .sort((a, b) => Number(b.score || 0) - Number(a.score || 0));
+  bulkIndex = 0;
+
+  if (!bulkQueue.length) {
+    applyPanel.classList.remove("hidden");
+    applyTitle.textContent = "Postular lote 80+";
+    applyMeta.textContent = "No hay ofertas 80+ pendientes.";
+    applySubject.value = "";
+    applyMessage.value = "";
+    applyStatus.textContent = "";
+    nextBulkBtn.classList.add("hidden");
+    return;
+  }
+
+  openBulkJob();
+}
+
+function startAllApply() {
+  bulkQueue = jobs
+    .filter((job) => job.status !== "postulada" && job.url)
+    .sort((a, b) => Number(b.score || 0) - Number(a.score || 0));
+  bulkIndex = 0;
+
+  if (!bulkQueue.length) {
+    applyPanel.classList.remove("hidden");
+    applyTitle.textContent = "Postular todas guardadas";
+    applyMeta.textContent = "No hay ofertas guardadas pendientes.";
+    applySubject.value = "";
+    applyMessage.value = "";
+    applyStatus.textContent = "";
+    nextBulkBtn.classList.add("hidden");
+    renderApplicationSummary();
+    return;
+  }
+
+  openBulkJob();
+}
+
+function openBulkJob() {
+  const job = bulkQueue[bulkIndex];
+  if (!job) {
+    applyStatus.textContent = "Lote terminado.";
+    nextBulkBtn.classList.add("hidden");
+    return;
+  }
+
+  openApplyPanel(job.url);
+  applyStatus.textContent = `Oferta ${bulkIndex + 1} de ${bulkQueue.length}. Revisa CV y carta antes de preparar.`;
+}
+
+function openNextBulkJob() {
+  bulkIndex += 1;
+  openBulkJob();
+}
+
+function formatDate(value) {
+  if (!value) return "No detectado";
+  return new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  }[char]));
+}

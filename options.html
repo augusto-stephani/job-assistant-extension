@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Opciones - Job Assistant Jr</title>
+    <link rel="stylesheet" href="options.css">
+  </head>
+  <body>
+    <main class="page">
+      <header class="header">
+        <div>
+          <h1>Perfil</h1>
+          <p>Edita los datos que usa el analizador y los mensajes.</p>
+        </div>
+        <a href="dashboard.html">Abrir dashboard</a>
+      </header>
+
+      <form id="profileForm" class="form">
+        <label>Nombre <input id="name" type="text"></label>
+        <label>Ubicacion <input id="location" type="text"></label>
+        <label>Objetivo laboral <textarea id="objective" rows="3"></textarea></label>
+        <label>Skills <textarea id="skills" rows="5"></textarea></label>
+        <label>Experiencia <textarea id="experience" rows="4"></textarea></label>
+        <label>Ingles <input id="english" type="text"></label>
+        <label>Preferencias <textarea id="preferences" rows="4"></textarea></label>
+        <label>Evitar <textarea id="avoid" rows="4"></textarea></label>
+        <label>Texto base de presentacion <textarea id="basePitch" rows="5"></textarea></label>
+        <label>Guardar automaticamente desde score <input id="autoSaveScore" type="number" min="0" max="100" step="1"></label>
+
+        <div class="actions">
+          <button type="submit">Guardar perfil</button>
+          <button type="button" id="resetBtn">Restaurar perfil inicial</button>
+        </div>
+        <p id="status" class="status"></p>
+      </form>
+    </main>
+
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

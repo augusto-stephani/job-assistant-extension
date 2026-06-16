@@ -1,0 +1,9 @@
+*.zip
+*.crx
+*.pem
+*.pdf
+*.doc
+*.docx
+*.log
+.DS_Store
+Thumbs.db

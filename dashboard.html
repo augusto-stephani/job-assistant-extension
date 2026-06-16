@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Dashboard - Job Assistant Jr</title>
+    <link rel="stylesheet" href="dashboard.css">
+  </head>
+  <body>
+    <main class="page">
+      <header class="header">
+        <div>
+          <h1>Ofertas guardadas</h1>
+          <p id="count">0 ofertas</p>
+        </div>
+        <div class="header-actions">
+          <a href="options.html">Perfil</a>
+        </div>
+      </header>
+
+      <section class="toolbar">
+        <label>Estado <select id="filterStatus"></select></label>
+        <label>Orden <select id="sortBy">
+          <option value="best">Mejores opciones</option>
+          <option value="score">Score mayor primero</option>
+          <option value="date">Mas recientes primero</option>
+          <option value="title">Titulo A-Z</option>
+        </select></label>
+        <button id="bulkApplyBtn" class="primary">Postular lote 80+</button>
+        <button id="applyAllBtn">Postular todas guardadas</button>
+      </section>
+
+      <section id="emptyState" class="empty hidden">
+        <h2>No hay ofertas guardadas</h2>
+        <p>Analiza una oferta desde el popup y guardala para verla aca.</p>
+      </section>
+
+      <section class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Titulo</th>
+              <th>Empresa</th>
+              <th>Pagina</th>
+              <th>Ubicacion</th>
+              <th>Modalidad</th>
+              <th>Experiencia</th>
+              <th>Sueldo</th>
+              <th>Score</th>
+              <th>Estado</th>
+              <th>Fecha</th>
+              <th>Link</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="jobsBody"></tbody>
+        </table>
+      </section>
+
+      <section id="applyPanel" class="apply-panel hidden">
+        <div class="apply-header">
+          <div>
+            <h2 id="applyTitle">Postular</h2>
+            <p id="applyMeta">Revisa el mensaje antes de enviarlo.</p>
+          </div>
+          <button id="closeApplyBtn">Cerrar</button>
+        </div>
+
+        <label>Asunto <input id="applySubject" type="text"></label>
+        <section class="apply-summary">
+          <p id="cvSummary">CV: no cargado</p>
+          <p>La carta se genera con tus tecnologias y se puede editar antes de preparar la oferta.</p>
+        </section>
+
+        <label>Carta editable para esta oferta <textarea id="applyMessage" rows="10"></textarea></label>
+
+        <div class="apply-actions">
+          <button id="prepareApplyBtn" class="primary">Preparar actual</button>
+          <button id="copyApplyBtn">Copiar mensaje</button>
+          <button id="downloadApplyCvBtn">Descargar CV</button>
+          <button id="openApplyUrlBtn">Abrir oferta</button>
+          <button id="markAppliedBtn">Marcar postulada</button>
+          <button id="nextBulkBtn" class="hidden">Siguiente 80+</button>
+        </div>
+        <p id="applyStatus" class="apply-status"></p>
+      </section>
+    </main>
+
+    <script type="module" src="dashboard.js"></script>
+  </body>
+</html>

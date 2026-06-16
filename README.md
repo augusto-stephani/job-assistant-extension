@@ -1,0 +1,80 @@
+# Job Assistant Jr
+
+Extension de Google Chrome Manifest V3 para asistir la busqueda laboral de perfiles Developer Jr, Backend Jr, Python Jr, Flask Jr o Trainee.
+
+La extension funciona como asistente local: analiza ofertas visibles, prioriza oportunidades, genera cartas de postulacion y acelera el flujo de postulacion sin evadir captchas ni enviar formularios sin revision.
+
+## Que hace
+
+- Lee el texto visible de una oferta o de una pagina de resultados.
+- Detecta tarjetas/listados de ofertas visibles y las guarda en el dashboard.
+- Intenta detectar titulo, empresa, ubicacion, modalidad, seniority, tecnologias, requisitos, sueldo y link.
+- Detecta experiencia requerida y pagina de origen.
+- Compara la oferta con el perfil configurado.
+- Calcula un score de compatibilidad de 0 a 100.
+- Ordena el dashboard por mejores opciones.
+- Genera un mensaje corto personalizado.
+- Genera un email de presentacion personalizado.
+- Guarda ofertas en `chrome.storage.local`.
+- Evita duplicados por URL.
+- Permite marcar estado: nueva, interesante, descartada, postulada, entrevista o rechazada.
+- Incluye dashboard con filtros, orden por score/mejores opciones y acciones.
+- Permite preparar postulaciones: copia carta, descarga CV, abre la oferta e intenta autocompletar campos de texto visibles.
+- Incluye pagina de opciones para editar el perfil.
+
+## Como instalar en Chrome
+
+1. Abrir Chrome.
+2. Entrar a `chrome://extensions`.
+3. Activar `Modo desarrollador`.
+4. Hacer click en `Cargar descomprimida`.
+5. Seleccionar la carpeta `job-assistant-extension`.
+6. Fijar la extension en la barra si queres tenerla a mano.
+
+## Como usar
+
+1. Abrir una oferta laboral en LinkedIn, Computrabajo, Zonajobs, Indeed u otra web.
+2. Abrir la extension.
+3. Hacer click en `Analizar pagina`.
+4. Revisar el dashboard con las mejores opciones.
+5. Usar `Generar mensaje` o `Generar email`.
+6. Cambiar el estado si corresponde.
+7. Hacer click en `Guardar oferta`.
+8. Abrir `Dashboard` para ver el historial.
+9. Usar `Postular`, `Postular lote 80+` o `Postular todas guardadas` para preparar cartas y abrir ofertas.
+
+## Configuracion
+
+Desde la pagina de opciones se puede editar:
+
+- Nombre.
+- Ubicacion.
+- Objetivo laboral.
+- Skills.
+- Experiencia.
+- Ingles.
+- Preferencias.
+- Elementos a evitar.
+- Texto base de presentacion.
+- Score minimo para marcar automaticamente como interesante.
+
+## Limitaciones
+
+- El extractor es generico porque cada portal arma sus paginas de forma distinta.
+- Si un dato no aparece visible o esta dentro de componentes bloqueados, puede figurar como `No detectado`.
+- El score es heuristico: sirve para priorizar, no reemplaza la revision humana.
+- Los mensajes generados deben revisarse antes de enviarse.
+- Por seguridad del navegador, una extension no puede adjuntar archivos a un input file automaticamente.
+- No envia postulaciones masivas sin revision; prepara y autocompleta texto cuando la pagina lo permite.
+- Todo queda guardado localmente en el navegador.
+- Las extensiones cargadas como descomprimidas no se actualizan solas. Para actualizacion automatica real hay que empaquetar/publicar la extension en Chrome Web Store o instalarla desde una politica empresarial con `update_url`.
+
+## Mejoras futuras
+
+- Exportar historial a CSV/JSON.
+- Agregar notas por oferta.
+- Mejorar heuristicas por portal.
+- Detectar rangos salariales con mas formatos.
+- Agregar etiquetas personalizadas.
+- Sincronizar backup manual en JSON.
+- Publicar version empaquetada para actualizaciones automaticas.
