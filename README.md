@@ -19,7 +19,7 @@ La extension funciona como asistente local: analiza ofertas visibles, prioriza o
 - Evita duplicados por URL.
 - Permite marcar estado: nueva, interesante, descartada, postulada, entrevista o rechazada.
 - Incluye dashboard con filtros, orden por score/mejores opciones y acciones.
-- Permite preparar postulaciones: copia carta, descarga CV, abre la oferta e intenta autocompletar campos de texto visibles.
+- Permite preparar postulaciones: copia carta, abre la oferta, intenta iniciar el formulario e intenta autocompletar campos de texto visibles.
 - Incluye pagina de opciones para editar el perfil.
 
 ## Como instalar en Chrome
@@ -41,7 +41,7 @@ La extension funciona como asistente local: analiza ofertas visibles, prioriza o
 6. Cambiar el estado si corresponde.
 7. Hacer click en `Guardar oferta`.
 8. Abrir `Dashboard` para ver el historial.
-9. Usar `Postular`, `Postular lote 80+` o `Postular todas guardadas` para preparar cartas y abrir ofertas.
+9. Usar `Postular` para abrir la oferta, preparar campos de texto y marcarla como postulada.
 
 ## Configuracion
 
@@ -65,9 +65,9 @@ Desde la pagina de opciones se puede editar:
 - El score es heuristico: sirve para priorizar, no reemplaza la revision humana.
 - Los mensajes generados deben revisarse antes de enviarse.
 - Por seguridad del navegador, una extension no puede adjuntar archivos a un input file automaticamente.
-- No envia postulaciones masivas sin revision; prepara y autocompleta texto cuando la pagina lo permite.
+- No presiona botones finales de envio; prepara y autocompleta texto cuando la pagina lo permite.
 - Todo queda guardado localmente en el navegador.
-- Las extensiones cargadas como descomprimidas no se actualizan solas. Para actualizacion automatica real hay que empaquetar/publicar la extension en Chrome Web Store o instalarla desde una politica empresarial con `update_url`.
+- Las extensiones cargadas como descomprimidas no se actualizan solas. El repo genera un ZIP en GitHub Actions en cada push. Para actualizacion automatica real hay que publicar en Chrome Web Store o instalarla con una politica empresarial con `update_url`.
 
 ## Mejoras futuras
 

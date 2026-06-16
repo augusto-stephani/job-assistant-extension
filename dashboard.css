@@ -20,7 +20,7 @@ body {
 }
 
 .page {
-  width: min(1180px, calc(100% - 28px));
+  width: min(1360px, calc(100% - 28px));
   margin: 0 auto;
   padding: 26px 0;
 }
@@ -94,16 +94,26 @@ select {
 
 table {
   width: 100%;
-  min-width: 1180px;
+  min-width: 1340px;
   border-collapse: collapse;
 }
 
 th, td {
-  padding: 12px;
+  padding: 14px;
   border-bottom: 1px solid var(--line);
   text-align: left;
   vertical-align: top;
   font-size: 14px;
+  line-height: 1.35;
+}
+
+td:first-child {
+  min-width: 230px;
+  font-weight: 700;
+}
+
+td:nth-child(2) {
+  min-width: 160px;
 }
 
 th {
@@ -114,6 +124,20 @@ th {
 
 tr:last-child td {
   border-bottom: 0;
+}
+
+tr.is-applied {
+  background: #eaf8ef;
+}
+
+tr.is-applied td {
+  border-bottom-color: #c7ebd4;
+}
+
+tr.is-applied .status-select {
+  border-color: #2f9e62;
+  color: #1d7f56;
+  font-weight: 700;
 }
 
 .score {
@@ -141,10 +165,6 @@ button {
   font: inherit;
 }
 
-#bulkApplyBtn {
-  min-height: 38px;
-}
-
 .delete {
   color: var(--danger);
 }
@@ -157,7 +177,7 @@ button {
 
 .apply-panel {
   margin-top: 16px;
-  padding: 16px;
+  padding: 18px;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -200,6 +220,7 @@ button {
 }
 
 .apply-panel textarea {
+  min-height: 260px;
   resize: vertical;
   line-height: 1.45;
 }

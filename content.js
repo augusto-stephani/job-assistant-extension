@@ -202,6 +202,12 @@
   function prepareApplicationFields(payload) {
     const messageText = payload.message || "";
     const subjectText = payload.subject || "";
+
+    clickStartApplicationButton();
+    setTimeout(() => fillApplicationFields(messageText, subjectText), 800);
+  }
+
+  function fillApplicationFields(messageText, subjectText) {
     const writableFields = [...document.querySelectorAll("textarea, [contenteditable='true'], input[type='text'], input:not([type])")]
       .filter((field) => isVisible(field) && !field.disabled && !field.readOnly);
 
@@ -211,6 +217,16 @@
         setFieldValue(field, messageText);
       } else if (/asunto|subject/i.test(label)) {
         setFieldValue(field, subjectText);
+      } else if (/nombre|name/i.test(label)) {
+        setFieldValue(field, "Augusto Stephani");
+      } else if (/ubicaci[oó]n|location|pais|country/i.test(label)) {
+        setFieldValue(field, "Argentina");
+      } else if (/experiencia|experience/i.test(label)) {
+        setFieldValue(field, "Estoy buscando mi primera experiencia profesional como Developer Jr. Tengo practica con proyectos CRUD, APIs REST, Python, Flask, SQLite, HTML, CSS, JavaScript, Git y GitHub.");
+      } else if (/tecnolog|skill|herramienta|stack/i.test(label)) {
+        setFieldValue(field, "Python, Flask, SQLite, HTML, CSS, JavaScript, APIs REST, Postman, Git, GitHub, requests, BeautifulSoup, pandas, CSV, JSON y proyectos CRUD.");
+      } else if (/ingles|english/i.test(label)) {
+        setFieldValue(field, "Intermedio");
       }
     });
 
@@ -224,6 +240,21 @@
         element.style.outline = "3px solid #1769aa";
         element.title = "Revisar antes de enviar";
       });
+  }
+
+  function clickStartApplicationButton() {
+    const buttons = [...document.querySelectorAll("button, a, input[type='button']")]
+      .filter((element) => isVisible(element))
+      .filter((element) => {
+        const text = cleanText(element.textContent || element.value).toLowerCase();
+        if (!/(postular|solicitar|aplicar|apply|easy apply)/i.test(text)) return false;
+        return !/(enviar|submit|finalizar|confirmar|send)/i.test(text);
+      });
+
+    const first = buttons[0];
+    if (!first) return;
+    first.style.outline = "3px solid #1769aa";
+    first.click();
   }
 
   function getFieldLabel(field) {

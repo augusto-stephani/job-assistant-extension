@@ -1,0 +1,27 @@
+name: Package extension
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate manifest
+        run: python -m json.tool manifest.json > /dev/null
+
+      - name: Create ZIP
+        run: |
+          zip -r job-assistant-extension.zip . \
+            -x ".git/*" ".github/*" "*.pem" "*.crx" "*.zip" "*.pdf" "*.doc" "*.docx"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: job-assistant-extension
+          path: job-assistant-extension.zip
